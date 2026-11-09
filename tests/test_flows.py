@@ -465,7 +465,7 @@ class ChecksumsTest(unittest.TestCase):
 
     def test_twrp_per_device(self):
         self.assertEqual(set(android.twrp_hashes(REPO, devices.BANDIT).values()), {devices.BANDIT.twrp_name})
-        self.assertEqual(android.twrp_hashes(REPO, devices.MARTINI), {})
+        self.assertEqual(set(android.twrp_hashes(REPO, devices.MARTINI).values()), {devices.MARTINI.twrp_name})
         self.assertTrue(devices.MARTINI.twrp_file("twrp-3.7.0_9-0-martini.img"))
         self.assertFalse(devices.MARTINI.twrp_file("twrp-3.7.0_9-1-bandit.img"))
         self.assertFalse(devices.BANDIT.twrp_file("twrp-banditx.img"))

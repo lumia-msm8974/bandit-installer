@@ -290,6 +290,12 @@ class MassStorageTest(unittest.TestCase):
         self.assertEqual(rc, 1, out)
         self.assertIn("not available yet for the Lumia 930", out)
 
+    def test_martini_phase2_needs_the_twrp_file(self):
+        rc, out = self.run_installer("phase2-martini", "phase2", "martini", device="martini")
+        self.assertEqual(rc, 1, out)
+        self.assertIn("Put twrp-3.7.0_9-0-martini.img in the folder", out)
+        self.assertIn("no release to download it from", out)
+
     # ------------------------------------------------------------------ boot chain
     def test_chain_refuses_fake_bcd(self):
         if os.environ.get("LUMIA_TEST_BCD"):

@@ -5,3 +5,7 @@
 # TWRP 3.7.0_9-1 for bandit, release twrp-bandit-20261102 of
 # https://github.com/lumia-msm8974/android_device_nokia_bandit/releases
 c53687b54a394c553c5e8e6dacbc367d7ce91b4f536c59c5b8328dbe1ddabd2d  twrp-3.7.0_9-1-bandit.img
+#
+# TWRP 3.7.0_9-0 for martini (Lumia 930), android_device_nokia_martini branch twrp-9.0 ad8b259,
+# kernel lineage-18.1-martini ac5369ab with the simple-framebuffer device tree. Never booted, not released.
+624466d25fa54eca5a4f234bd9dd9b6ef15052b88aadc5ce50e3c40d1efe51b0  twrp-3.7.0_9-0-martini.img

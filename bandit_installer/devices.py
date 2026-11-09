@@ -64,8 +64,13 @@ MARTINI = Device(
     "martini", "Lumia 930", ("RM-1045",), unverified_models=("RM-1087",),
     ready={"full": False, "clean": False, "update": False},
     rom_releases="https://github.com/lumia-msm8974/android_device_nokia_martini/releases",
-    notes=("In preparazione: backup, firmware e catena di avvio pronti, lk1st mai avviato; ROM e TWRP non ancora rilasciate.",
-           "In preparation: backup, firmware and boot chain ready, lk1st never booted; no ROM or TWRP released yet."),
+    # Built from android_device_nokia_martini branch twrp-9.0 (ad8b259), never booted, not released: the
+    # file goes in twrp/ by hand. Pinned in checksums.sha256 so phase 2 (advanced tools) can use it.
+    twrp_name="twrp-3.7.0_9-0-martini.img",
+    notes=("In preparazione: lk1st, TWRP e ROM compilati ma mai avviati; le modalità si sbloccano dopo la prima prova sul telefono "
+           "(fase 2 disponibile negli strumenti avanzati).",
+           "In preparation: lk1st, TWRP and ROM built but never booted; the modes unlock after the first test on a phone "
+           "(phase 2 available in the advanced tools)."),
 )
 
 DEVICES = {d.codename: d for d in (BANDIT, MARTINI)}

@@ -132,6 +132,11 @@ def resolve_twrp(ctx):
         cands = [os.path.join(folder, dev.twrp_name)] + sorted(
             c for c in glob.glob(os.path.join(folder, "twrp*.img")) if dev.twrp_file(os.path.basename(c)))
         path = next((c for c in cands if os.path.isfile(c)), None)
+        if not path and not dev.twrp_url:
+            raise Abort(L(f"Metti {dev.twrp_name} nella cartella {folder}: per il {dev.title} non c'è ancora una release "
+                          "da cui scaricarla (l'immagine è nel kit del progetto).",
+                          f"Put {dev.twrp_name} in the folder {folder}: there is no release to download it from for the "
+                          f"{dev.title} yet (the image is in the project kit)."))
         if not path:
             if not ui.confirm(L("Scaricare la TWRP?", "Download TWRP?"),
                               L(f"{dev.twrp_name} (circa 20 MB) non è nella cartella twrp. Scaricarla da\n{dev.twrp_url}?",
