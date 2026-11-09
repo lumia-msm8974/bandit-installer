@@ -3,7 +3,7 @@ Put the TWRP image here:
   twrp-3.7.0_9-1-bandit.img
 
 Download it from
-https://github.com/giannoccarol/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102
+https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102
 (the installer offers to download it when it is missing). Its SHA-256 must be listed in
 checksums.sha256 next to the installer. TWRP is only started in RAM (fastboot boot), never
 written to the phone.

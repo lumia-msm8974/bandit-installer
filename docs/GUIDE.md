@@ -78,9 +78,9 @@ cable back. From the lk1st check onwards the installer only uses fastboot and ad
 
 | What | From | Put it in |
 |---|---|---|
-| The installer: `bandit-installer-<version>-windows.zip` (with its own Python) or `bandit-installer-<version>-linux.tar.gz` | [installer releases](https://github.com/giannoccarol/bandit-installer/releases) | a folder with enough free space |
-| The ROM: `lineage-18.1-YYYYMMDD-UNOFFICIAL-bandit.zip` **and** `SHA256SUMS` | [android_device_nokia_bandit releases](https://github.com/giannoccarol/android_device_nokia_bandit/releases) | the `rom` folder of the installer |
-| TWRP: `twrp-3.7.0_9-1-bandit.img` (optional: the installer downloads it when missing) | [release `twrp-bandit-20261102`](https://github.com/giannoccarol/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102) | the `twrp` folder of the installer |
+| The installer: `bandit-installer-<version>-windows.zip` (with its own Python) or `bandit-installer-<version>-linux.tar.gz` | [installer releases](https://github.com/lumia-msm8974/bandit-installer/releases) | a folder with enough free space |
+| The ROM: `lineage-18.1-YYYYMMDD-UNOFFICIAL-bandit.zip` **and** `SHA256SUMS` | [android_device_nokia_bandit releases](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases) | the `rom` folder of the installer |
+| TWRP: `twrp-3.7.0_9-1-bandit.img` (optional: the installer downloads it when missing) | [release `twrp-bandit-20261102`](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102) | the `twrp` folder of the installer |
 
 On Windows extract the whole installer zip first (right click → *Extract all*); do not start it from
 inside the zip. Keep **one** ROM zip in `rom` (with more than one the installer asks which).

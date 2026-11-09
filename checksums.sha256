@@ -3,5 +3,5 @@
 # Add a line when a new TWRP build is released.
 #
 # TWRP 3.7.0_9-1 for bandit, release twrp-bandit-20261102 of
-# https://github.com/giannoccarol/android_device_nokia_bandit/releases
+# https://github.com/lumia-msm8974/android_device_nokia_bandit/releases
 c53687b54a394c553c5e8e6dacbc367d7ce91b4f536c59c5b8328dbe1ddabd2d  twrp-3.7.0_9-1-bandit.img

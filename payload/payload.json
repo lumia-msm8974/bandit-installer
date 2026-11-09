@@ -16,7 +16,7 @@
       "title_en": "lk1st base (0x0FF00000)",
       "note_it": "Fastboot verificato su RM-937 il 01/11/2026. Schermo fermo: lk1st non usa il display.",
       "note_en": "Fastboot verified on an RM-937 on 2026-11-01. The screen does not change: this lk1st does not drive the display.",
-      "source": "giannoccarol/lk2nd branch bandit, c6967d7b built with MEMBASE=0x0FF00000"
+      "source": "lumia-msm8974/lk2nd branch bandit, c6967d7b built with MEMBASE=0x0FF00000"
     }
   ],
   "boot": [

@@ -15,7 +15,7 @@ The installer sets up that chain, replaces Windows with the Android partitions a
 from TWRP, which it only starts in RAM. **Unofficial and experimental**: you do this at your own risk.
 
 **Download** the package for Windows or Linux from the
-[releases page](https://github.com/giannoccarol/bandit-installer/releases) and follow the
+[releases page](https://github.com/lumia-msm8974/bandit-installer/releases) and follow the
 **[user guide](docs/GUIDE.md)** ([guida in italiano](docs/GUIDA.md)).
 
 ![Install page](docs/screenshots/01-install.png)
@@ -100,9 +100,9 @@ again, and never asks to erase Windows twice).
 
 | File | Where | Where from |
 |---|---|---|
-| The installer | anywhere with a few GB free | [releases](https://github.com/giannoccarol/bandit-installer/releases): `bandit-installer-<version>-windows.zip` (with its own Python) or `-linux.tar.gz` |
-| ROM: `lineage-18.1-YYYYMMDD-UNOFFICIAL-bandit.zip` **and** `SHA256SUMS` | `rom/` in the installer folder | [android_device_nokia_bandit releases](https://github.com/giannoccarol/android_device_nokia_bandit/releases) |
-| TWRP: `twrp-3.7.0_9-1-bandit.img` | `twrp/` in the installer folder (downloaded by the installer if missing) | [release `twrp-bandit-20261102`](https://github.com/giannoccarol/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102) |
+| The installer | anywhere with a few GB free | [releases](https://github.com/lumia-msm8974/bandit-installer/releases): `bandit-installer-<version>-windows.zip` (with its own Python) or `-linux.tar.gz` |
+| ROM: `lineage-18.1-YYYYMMDD-UNOFFICIAL-bandit.zip` **and** `SHA256SUMS` | `rom/` in the installer folder | [android_device_nokia_bandit releases](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases) |
+| TWRP: `twrp-3.7.0_9-1-bandit.img` | `twrp/` in the installer folder (downloaded by the installer if missing) | [release `twrp-bandit-20261102`](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102) |
 | Platform Tools (`adb`, `fastboot`) | `tools/` (downloaded by the installer if missing) | Google |
 
 The ROM zip is checked against `SHA256SUMS` next to it (or `--rom-sha256`); the TWRP image against
@@ -285,13 +285,13 @@ tests/         layout and flow tests, fake adb/fastboot
 - **imbushuo (Bingxing Wang)**: [boot-shim](https://github.com/imbushuo/boot-shim), release
   `elf-loader-pre3` (ARM32), the UEFI application that loads lk1st. Included unmodified.
 - **msm8916-mainline**: [lk2nd](https://github.com/msm8916-mainline/lk2nd), base of lk1st; bandit port in
-  [giannoccarol/lk2nd](https://github.com/giannoccarol/lk2nd) (branch `bandit`).
+  [lumia-msm8974/lk2nd](https://github.com/lumia-msm8974/lk2nd) (branch `bandit`).
 - **KorelisLabs**: [lumia-1520-mainline](https://github.com/KorelisLabs/lumia-1520-mainline): 1520 boot
   chain, lk1st device tree and load address, and the PIL split format reproduced in `images.py`.
 - **René Lergner (HeathCliff)**: [WPinternals](https://github.com/ReneLergner/WPinternals), unlock and
   mass storage mode.
 - **TeamWin**: [TWRP](https://twrp.me), the recovery the installer starts in RAM (bandit build from
-  [android_device_nokia_bandit](https://github.com/giannoccarol/android_device_nokia_bandit/tree/twrp-9.0)).
+  [android_device_nokia_bandit](https://github.com/lumia-msm8974/android_device_nokia_bandit/tree/twrp-9.0)).
 - **Markynose**: BootShim → lk1st chain on the Lumia 930.
 - **LineageOS** and the `oppo_msm8974` kernel the bandit kernel is based on.
 - Google for the Android Platform Tools and USB driver.
@@ -309,7 +309,7 @@ catena BootShim → lk1st, partizioni Android con **Windows cancellato**, ROM), 
 Android già presenti: dati cancellati, ROM) e **Aggiornamento** (questa ROM già installata: dati
 conservati). La TWRP viene solo avviata in RAM. Metti lo zip della ROM e il suo `SHA256SUMS` in `rom/`;
 la TWRP in `twrp/` (o la scarica l'installer). Pacchetti nella
-[pagina delle release](https://github.com/giannoccarol/bandit-installer/releases), istruzioni complete
+[pagina delle release](https://github.com/lumia-msm8974/bandit-installer/releases), istruzioni complete
 nella **[guida in italiano](docs/GUIDA.md)**. Avvio: `./installer.sh` su Linux, `installer.bat` su
 Windows. Il volume su all'accensione resta sempre la modalità flash per il recupero.
 

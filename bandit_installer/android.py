@@ -37,10 +37,10 @@ ANDROID_PARTS = ("boot", "recovery", "system", "userdata", "cache", "persist", "
 ROM_GLOB = "lineage-18.1-*-bandit.zip"
 ROM_DEVICES = ("bandit", "RM-937", "RM-938", "RM-939", "RM-940")
 ROM_SDK = "30"
-ROM_RELEASES = "https://github.com/giannoccarol/android_device_nokia_bandit/releases"
+ROM_RELEASES = "https://github.com/lumia-msm8974/android_device_nokia_bandit/releases"
 TWRP_NAME = "twrp-3.7.0_9-1-bandit.img"
-TWRP_PAGE = "https://github.com/giannoccarol/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102"
-TWRP_URL = ("https://github.com/giannoccarol/android_device_nokia_bandit/releases/download/"
+TWRP_PAGE = "https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102"
+TWRP_URL = ("https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/download/"
             "twrp-bandit-20261102/" + TWRP_NAME)
 CHECKSUMS = "checksums.sha256"
 

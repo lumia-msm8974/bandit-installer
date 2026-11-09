@@ -81,9 +81,9 @@ solo per tornare a Windows (scrittura di un FFU dalla modalità flash,
 
 | Cosa | Da dove | Dove metterlo |
 |---|---|---|
-| L'installer: `bandit-installer-<versione>-windows.zip` (con il suo Python) oppure `bandit-installer-<versione>-linux.tar.gz` | [release dell'installer](https://github.com/giannoccarol/bandit-installer/releases) | una cartella con abbastanza spazio libero |
-| La ROM: `lineage-18.1-AAAAMMGG-UNOFFICIAL-bandit.zip` **e** `SHA256SUMS` | [release di android_device_nokia_bandit](https://github.com/giannoccarol/android_device_nokia_bandit/releases) | la cartella `rom` dell'installer |
-| La TWRP: `twrp-3.7.0_9-1-bandit.img` (facoltativa: se manca la scarica l'installer) | [release `twrp-bandit-20261102`](https://github.com/giannoccarol/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102) | la cartella `twrp` dell'installer |
+| L'installer: `bandit-installer-<versione>-windows.zip` (con il suo Python) oppure `bandit-installer-<versione>-linux.tar.gz` | [release dell'installer](https://github.com/lumia-msm8974/bandit-installer/releases) | una cartella con abbastanza spazio libero |
+| La ROM: `lineage-18.1-AAAAMMGG-UNOFFICIAL-bandit.zip` **e** `SHA256SUMS` | [release di android_device_nokia_bandit](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases) | la cartella `rom` dell'installer |
+| La TWRP: `twrp-3.7.0_9-1-bandit.img` (facoltativa: se manca la scarica l'installer) | [release `twrp-bandit-20261102`](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102) | la cartella `twrp` dell'installer |
 
 Su Windows estrai prima tutto lo zip dell'installer (tasto destro → *Estrai tutto*); non avviarlo
 dall'interno dello zip. Tieni **un solo** zip della ROM in `rom` (se ce ne sono di più l'installer
