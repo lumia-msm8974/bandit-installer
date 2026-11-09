@@ -247,20 +247,27 @@ def need_admin(ctx):
 # phone disk (mass storage)
 # ---------------------------------------------------------------------------
 
+# The unlock and the switch to mass storage are the preparation, done with WPinternals
+# on Windows before the installer starts (see the guide): the installer never drives
+# WPinternals, it only checks the result.
 MASS_HELP_IT = [
-    "1. Sblocca il telefono con WPinternals (da un PC Windows).",
-    "2. In WPinternals scegli «Switch to Mass Storage Mode».",
-    "3. Il telefono mostra il simbolo USB; i suoi dischi compaiono sul PC.",
-    "   Dopo lo sblocco puoi spostare il cavo su un PC Linux: il telefono resta",
-    "   in mass storage fino al riavvio.",
+    "Collega il telefono già preparato: sbloccato e in mass storage (simbolo USB sullo schermo).",
+    "La preparazione si fa prima, con WPinternals su un PC Windows (guida, «Preparazione»);",
+    "poi puoi spostare il cavo su qualsiasi PC, anche Linux: il telefono resta in mass storage",
+    "fino al riavvio.",
 ]
 MASS_HELP_EN = [
-    "1. Unlock the phone with WPinternals (on a Windows PC).",
-    "2. In WPinternals choose \"Switch to Mass Storage Mode\".",
-    "3. The phone shows a USB symbol and its drives appear on the PC.",
-    "   After unlocking you may move the cable to a Linux PC: the phone stays",
-    "   in mass storage mode until it restarts.",
+    "Connect the prepared phone: unlocked and in mass storage mode (USB symbol on the screen).",
+    "The preparation is done first, with WPinternals on a Windows PC (guide, \"Preparation\");",
+    "then you may move the cable to any PC, Linux too: the phone stays in mass storage until",
+    "it restarts.",
 ]
+NOT_UNLOCKED_IT = ("Il telefono non è sbloccato (manca IS_UNLOCKED): fai prima la preparazione con WPinternals su Windows "
+                   "(sblocco del bootloader, poi «Switch to Mass Storage Mode»), poi ricollegalo qui. "
+                   "Nessuna scrittura è stata fatta.")
+NOT_UNLOCKED_EN = ("The phone is not unlocked (no IS_UNLOCKED): do the preparation with WPinternals on Windows first "
+                   "(bootloader unlock, then \"Switch to Mass Storage Mode\"), then connect it here again. "
+                   "Nothing has been written.")
 
 
 def find_lumia_disks(ctx):
@@ -315,9 +322,8 @@ def select_disk(ctx, need_unlocked=False):
              else L("nessuna partizione Android (Windows intatto)", "no Android partitions (Windows intact)")]
     ui.show(L("Telefono trovato", "Phone found"), lines)
     android.check_model(ctx, model, "DPP")
-    if need_unlocked and not unlocked:
-        raise Abort(L("Il bootloader non risulta sbloccato. Senza lo sblocco di WPinternals BootShim non parte: sblocca prima il telefono.",
-                      "The bootloader does not look unlocked. Without the WPinternals unlock BootShim cannot start: unlock the phone first."))
+    if (need_unlocked or getattr(ctx, "require_unlocked", False)) and not unlocked:
+        raise Abort(L(NOT_UNLOCKED_IT, NOT_UNLOCKED_EN))
     ctx.disk = d
     ctx.state.set_phone(g.disk_guid, {"size": d.size, "model": d.model, "unlocked": unlocked,
                                       "device": ctx.device.codename, "rm": model})
@@ -1180,8 +1186,8 @@ PHASE2_READY = True
 MODES = {
     "full": {
         "title": ("Completa", "Full"),
-        "before": ("Windows 10 Mobile, sbloccato con WPinternals, in mass storage",
-                   "Windows 10 Mobile, unlocked with WPinternals, in mass storage mode"),
+        "before": ("Windows 10 Mobile o 8.1, già sbloccato e in mass storage (preparazione con WPinternals, fuori dall'installer)",
+                   "Windows 10 Mobile or 8.1, already unlocked and in mass storage mode (preparation with WPinternals, outside the installer)"),
         "does": ("backup, firmware da Windows, BootShim + lk1st su EFIESP, verifica di lk1st, partizioni Android "
                  "(Windows cancellato), TWRP in RAM, formattazione dei dati, ROM",
                  "backup, firmware from Windows, BootShim + lk1st on EFIESP, lk1st check, Android partitions "
@@ -1317,11 +1323,18 @@ def act_full(ctx):
           "Windows is erased only after the provisioning backup and the confirmation words."),
     ])
     _need_tools(ctx)
-    _resolve_files(ctx)
     snap = ctx.phone.snapshot()
     lk_seen = snap.mode == "fastboot" and snap.detail.startswith(("lk1st", "lk2nd"))
     chain_ready = st.done("chain") or st.done("lk1st") or st.done("phase2") or lk_seen
-    if snap.mode == "mass" or not chain_ready:
+    need_mass = snap.mode == "mass" or not chain_ready
+    if need_mass:
+        # preparation first: the phone must arrive unlocked (WPinternals, outside the
+        # installer); checked before anything else is asked or written
+        ctx.require_unlocked = True
+        select_disk(ctx)
+        ui.ok(L("Preparazione fatta: telefono sbloccato e in mass storage", "Preparation done: phone unlocked and in mass storage"))
+    _resolve_files(ctx)
+    if need_mass:
         _full_mass_storage_part(ctx)
     elif not (st.done("lk1st") or st.done("phase2")):
         if snap.mode == "fastboot":

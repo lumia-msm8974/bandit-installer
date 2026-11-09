@@ -106,6 +106,9 @@ class MassStorageTest(unittest.TestCase):
         for name, device, model in (("bandit", "bandit", "RM-937"), ("martini", "martini", "RM-1045"),
                                     ("icon", "martini", "RM-927"), ("nodpp", "bandit", None)):
             cls.disks[name] = cls.make_disk(name, TABLES[device], model)
+        # a phone not unlocked yet: WPinternals adds IS_UNLOCKED when it unlocks
+        locked = "\n".join(r for r in TABLES["bandit"].splitlines() if "IS_UNLOCKED" not in r) + "\n"
+        cls.disks["locked"] = cls.make_disk("locked", locked, "RM-937")
         cls.mainos = os.path.join(cls.tmp, "MainOS")
         drv = os.path.join(cls.mainos, "Windows", "System32", "DriverStore", "FileRepository", "qcadsp.inf_arm_x")
         os.makedirs(drv)
@@ -247,6 +250,20 @@ class MassStorageTest(unittest.TestCase):
         bk = self.only_dir("backups", "telefono-")
         full = [f for f in os.listdir(bk) if f.startswith("lumia-martini-full.img")]
         self.assertEqual(len(full), 1, os.listdir(bk))
+
+    def test_full_refuses_locked_phone_first(self):
+        rc, out = self.run_installer("full-locked", "full", "locked", device="bandit")
+        self.assertEqual(rc, 1, out)
+        self.assertIn("The phone is not unlocked (no IS_UNLOCKED)", out)
+        self.assertNotIn("Checking TWRP", out)       # nothing else was asked or checked
+        self.assertNotIn("Phone backup", out)
+        self.assertFalse(os.path.isdir(os.path.join(self.work, "backups")) and
+                         [d for d in os.listdir(os.path.join(self.work, "backups")) if d.startswith("telefono-")])
+
+    def test_full_accepts_prepared_phone(self):
+        rc, out = self.run_installer("full-prepared", "full", "bandit", device="bandit")
+        self.assertIn("Preparation done: phone unlocked and in mass storage", out)
+        self.assertIn("Checking TWRP", out)          # then goes on (stops later: no TWRP in this test)
 
     # ------------------------------------------------------------------ firmware
     def test_firmware(self):

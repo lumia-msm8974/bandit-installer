@@ -159,9 +159,10 @@ Qualunque altra risposta lo ferma senza scrivere niente.
 **Prima di cominciare:** Windows e tutto il contenuto del telefono verranno cancellati. Copia prima
 foto e file dal telefono.
 
-### 6.1 Sbloccare il telefono e metterlo in mass storage
+### 6.1 Preparazione: sbloccare il telefono e metterlo in mass storage
 
-Questa parte si fa con **WPinternals su Windows**, fuori da questo installer (vedi
+Questa è la **preparazione**, fatta con **WPinternals su Windows**, fuori da questo installer: ogni
+modalità parte da un telefono già sbloccato (vedi
 [Prima di cominciare](#prima-di-cominciare-sbloccare-il-bootloader-solo-windows)).
 
 1. Segui le istruzioni di WPinternals per **sbloccare il bootloader**.
@@ -169,6 +170,10 @@ Questa parte si fa con **WPinternals su Windows**, fuori da questo installer (ve
    partizioni compaiono sul PC.
 3. Installer su Linux: ora sposta il cavo USB sul PC Linux. Il telefono resta in mass storage fino al
    riavvio.
+
+L'installer non usa mai WPinternals. La modalità Completa controlla lo sblocco (la partizione
+`IS_UNLOCKED` che WPinternals aggiunge) prima di ogni altra cosa e si ferma subito, senza scrivere
+nulla, se manca.
 
 ### 6.2 Avvio
 

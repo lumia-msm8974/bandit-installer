@@ -153,9 +153,10 @@ is about to write to the phone. Anything else stops it with nothing written.
 **Before you start:** Windows and everything on the phone will be erased. Copy your photos and files
 off the phone first.
 
-### 6.1 Unlock the phone and switch it to mass storage
+### 6.1 Preparation: unlock the phone and switch it to mass storage
 
-This part is done with **WPinternals on Windows**, outside this installer (see
+This is the **preparation**, done with **WPinternals on Windows**, outside this installer: every
+mode starts from a phone that is already unlocked (see
 [Before you start](#before-you-start-unlock-the-bootloader-windows-only)).
 
 1. Follow the WPinternals instructions to **unlock the bootloader**.
@@ -163,6 +164,9 @@ This part is done with **WPinternals on Windows**, outside this installer (see
    partitions appear on the PC.
 3. Installer on Linux: now move the USB cable to the Linux PC. The phone stays in mass storage mode
    until it restarts.
+
+The installer never runs WPinternals. The Full mode checks the unlock (the `IS_UNLOCKED` partition
+WPinternals adds) before anything else and stops at once, without writing, if it is missing.
 
 ### 6.2 Start
 

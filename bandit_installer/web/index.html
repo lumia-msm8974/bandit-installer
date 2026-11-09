@@ -185,6 +185,9 @@ h2 { font-size: 20px; font-weight: 400; color: var(--fg); margin: 0 0 12px; }
 .radio.on .dotr::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--fg); }
 .radio:hover .dotr { border-color: #fff; }
 .devpick { margin: 0 0 18px; }
+.prep { margin: 0 0 18px; }
+.prepstate { margin-top: 8px; font-weight: 600; opacity: .8; }
+.prepstate.good { color: #6c6; opacity: 1; }
 .devpick small { opacity: .7; }
 .radio.busy { cursor: default; opacity: .6; }
 .swatches { display: grid; grid-template-columns: repeat(7, 48px); gap: 4px; }
@@ -315,7 +318,8 @@ const T = {
     install_t: "Install Android", install_l: "Pick a mode. The installer goes through its steps in order, checks every write and resumes where it stopped.",
     before: "Phone before", does: "What happens", data: "Your data", available: "Available", later: "Not available",
     start: "Start", resume: "Continue", again: "Run again", busy: "A task is running",
-    full: "Full install", full_before: "Windows 10 Mobile, unlocked with WPinternals, in mass storage mode",
+    full: "Full install", full_before: "Windows 10 Mobile or 8.1, already unlocked and in mass storage mode (preparation)",
+    prep_t: "Before you start: preparation (Windows only, outside the installer)", prep_l: "Unlock the bootloader with WPinternals on a Windows PC, then choose \"Switch to Mass Storage Mode\". The installer starts from there, on Windows or Linux: it never runs WPinternals and stops at once if the phone is not unlocked. Clean and Update do not need it.", prep_ok: "Phone unlocked and in mass storage", prep_wait: "Waiting for a prepared phone",
     full_does: "Backup, firmware from Windows, BootShim + lk1st on EFIESP, lk1st check, Android partitions (Windows erased), TWRP in RAM, format data, ROM",
     full_data: "Windows and all its data erased (after a backup on the PC)",
     clean: "Clean install", clean_before: "lk1st and the Android partitions already in place",
@@ -357,7 +361,8 @@ const T = {
     install_t: "Installa Android", install_l: "Scegli una modalità. L'installer esegue i passi in ordine, verifica ogni scrittura e riprende da dove si era fermato.",
     before: "Telefono prima", does: "Cosa fa", data: "I tuoi dati", available: "Disponibile", later: "Non disponibile",
     start: "Inizia", resume: "Continua", again: "Ripeti", busy: "Un'operazione è in corso",
-    full: "Installazione completa", full_before: "Windows 10 Mobile, sbloccato con WPinternals, in mass storage",
+    full: "Installazione completa", full_before: "Windows 10 Mobile o 8.1, già sbloccato e in mass storage (preparazione)",
+    prep_t: "Prima di iniziare: preparazione (solo Windows, fuori dall'installer)", prep_l: "Sblocca il bootloader con WPinternals su un PC Windows, poi scegli «Switch to Mass Storage Mode». L'installer parte da lì, su Windows o Linux: non usa mai WPinternals e si ferma subito se il telefono non è sbloccato. Pulita e Aggiornamento non ne hanno bisogno.", prep_ok: "Telefono sbloccato e in mass storage", prep_wait: "In attesa di un telefono preparato",
     full_does: "Backup, firmware da Windows, BootShim + lk1st su EFIESP, verifica di lk1st, partizioni Android (Windows cancellato), TWRP in RAM, formattazione dei dati, ROM",
     full_data: "Windows e tutti i suoi dati cancellati (prima un backup sul PC)",
     clean: "Installazione pulita", clean_before: "lk1st e partizioni Android già presenti",
@@ -439,7 +444,7 @@ function render(force) {
   renderNav();
   const fn = { install: renderInstall, tools: renderTools, settings: renderSettings }[current];
   if (!fn) return;
-  const key = JSON.stringify([current, S.lang, S.done, S.running, S.requirements, S.kit, S.modes, S.admin, S.device]);
+  const key = JSON.stringify([current, S.lang, S.done, S.running, S.requirements, S.kit, S.modes, S.admin, S.device, (S.phone || {}).mode]);
   if (!force && rendered[current] === key) return;
   rendered[current] = key;
   fn();
@@ -473,7 +478,10 @@ function renderInstall() {
   for (const d of S.devices || [])
     h += `<div class="radio ${S.device === d.codename ? "on" : ""} ${S.running ? "busy" : ""}" data-device="${esc(d.codename)}"><span class="dotr"></span>
       <div>${esc(d.name)} <small>(${esc(d.codename)}, ${esc(d.models.join(", "))})</small>${d.note ? `<div class="fsub">${esc(d.note)}</div>` : ""}</div></div>`;
-  h += `<div class="fsub" style="margin-top:6px">${t("device_s")}</div></div><div class="modes">`;
+  h += `<div class="fsub" style="margin-top:6px">${t("device_s")}</div></div>`;
+  const mass = (S.phone || {}).mode === "mass";
+  h += `<div class="setsec prep"><h2>${t("prep_t")}</h2><div class="fsub">${t("prep_l")}</div>
+    <div class="prepstate ${mass ? "good" : ""}">${mass ? "✓ " + t("prep_ok") : t("prep_wait")}</div></div><div class="modes">`;
   for (const [key, icon] of MODES) {
     const ready = S.modes ? S.modes[key] !== false : true;
     const label = key === "full" ? (doneCount === 0 ? t("start") : doneCount < STEPS.length ? t("resume") : t("again")) : t("start");

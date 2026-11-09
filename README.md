@@ -65,7 +65,7 @@ of three modes and the installer goes through the steps in order.
 
 | Mode | Phone before | What happens | Data |
 |---|---|---|---|
-| **Full** | Windows 10 Mobile (or 8.1), unlocked with WPinternals, in mass storage mode | backup, firmware from Windows, BootShim + lk1st on EFIESP, lk1st check, **Android partitions (Windows erased)**, TWRP in RAM, format data, ROM | **Windows and all its data erased** (after a backup on the PC) |
+| **Full** | Windows 10 Mobile (or 8.1), **already unlocked and in mass storage mode** (the preparation, done with WPinternals outside the installer; checked first) | backup, firmware from Windows, BootShim + lk1st on EFIESP, lk1st check, **Android partitions (Windows erased)**, TWRP in RAM, format data, ROM | **Windows and all its data erased** (after a backup on the PC) |
 | **Clean** | lk1st and the Android partitions already in place | TWRP in RAM, format data, wipe cache and Dalvik, ROM | all Android data erased, internal storage included |
 | **Update** | this ROM already installed | TWRP in RAM, ROM | kept |
 
