@@ -271,7 +271,7 @@ The single steps are also available on their own, for development and recovery:
 | TWRP 3.7.0_9-1 in RAM, `adb sideload` of the ROM | verified on an RM-937 (2026-11-02) |
 | Clean/Update flow of the installer | simulated phone only (`tests/test_flows.py`) |
 | Backup, firmware, boot chain, EFIESP restore | simulated phone only (`tests/test_mass.py`, disk image through mtools) |
-| Lumia 930 partition table | synthetic (1520 table with the MainOS/Data split Markynose measured); to be replaced by a real 930 GPT |
+| Lumia 930 partition table | the GPT of the official RM-1045 FFU (Data grown to a 32 GB eMMC, IS_UNLOCKED added); phase 2 layout and checks pass on it. No `BACKUP_BS_NV` on the 930: skipped |
 | Linux BCD writer (hivex) | output byte-identical to the kit script used on the phone |
 | Windows BCD writer (bcdedit), Windows disk/USB detection | written, **not yet run on Windows** |
 
@@ -284,7 +284,7 @@ python3 -m unittest discover -s tests
 Nothing talks to a real device. The tests need `sfdisk`, `mkfs.fat` and mtools.
 
 - `tests/test_layout.py` compares the computed partition table with what `parted` produces from the
-  Android4Lumia950 `partition.sh`, on the 1520 table and on the (synthetic) 930 table.
+  Android4Lumia950 `partition.sh`, on the 1520 table and on the 930 table from its official FFU.
 - `tests/test_flows.py` runs the three modes in `--text` mode against a fake phone (`tests/fake/adb`,
   `tests/fake/fastboot`) whose eMMC is a sparse disk image with the 1520's partition table.
 - `tests/test_mass.py` runs the mass storage tasks (backup, firmware, boot chain, EFIESP restore) with
@@ -346,8 +346,7 @@ tests/         layout, flow and mass storage tests, fake adb/fastboot, Docker ru
 - **TeamWin**: [TWRP](https://twrp.me), the recovery the installer starts in RAM (bandit build from
   [android_device_nokia_bandit](https://github.com/lumia-msm8974/android_device_nokia_bandit/tree/twrp-9.0)).
 - **Markynose (Mark Buchok)**: [lumia930-linux](https://github.com/Markynose/lumia930-linux), the
-  BootShim → lk1st chain on the Lumia 930 (ELF entry 0x7cc00000) and the Data start of a 32 GB 930
-  used by the synthetic 930 table in the tests.
+  BootShim → lk1st chain on the Lumia 930 (ELF entry 0x7cc00000).
 - **zh / hao (2314372037)**: [android_device_nokia_martini](https://github.com/2314372037/android_device_nokia_martini)
   and its [installer](https://github.com/2314372037/installer) branch `martini`: the 930 model codes and
   the confirmation that the 950 XL partition scheme fits the 930.
