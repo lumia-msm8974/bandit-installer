@@ -401,7 +401,127 @@ class WindowsSystem(System):
         return miss
 
 
+# ---------------------------------------------------------------------------
+# test: a disk image as a phone in mass storage mode
+# ---------------------------------------------------------------------------
+
+class ImageSystem(LinuxSystem):
+    """A phone in mass storage mode simulated by a disk image (only with --test).
+
+    LUMIA_TEST_DISK  the eMMC image (raw, may be sparse)
+    LUMIA_TEST_DIRS  "MainOS=/folder;…": folders that stand for partitions whose file
+                     system mtools cannot read (NTFS)
+
+    FAT partitions are read and written inside the image with mtools, so no root, loop
+    device or mount is needed. Used by the tests and to rehearse a whole install on a
+    copy of a real phone's full backup.
+    """
+    name = "linux-test-image"
+
+    def __init__(self, root_dir, image, dirs=None):
+        super().__init__(root_dir, test_mode=True)
+        self.image = os.path.abspath(image)
+        self.dirs = dict(dirs or {})
+
+    def is_admin(self):
+        return True
+
+    def elevate(self, argv):
+        raise SysError("not needed with a test disk image")
+
+    def give_back(self, path):
+        pass
+
+    def list_disks(self):
+        if not os.path.isfile(self.image):
+            return []
+        return [Disk(self.image, self.image, os.path.getsize(self.image), "Test image", "usb",
+                     os.path.basename(self.image))]
+
+    def partition_node(self, disk, part):
+        return f"{self.image}@@{part.offset}"
+
+    def partition_mounted(self, disk, part):
+        return False
+
+    def unmount_all(self, disk):
+        return []
+
+    def usb_devices(self):
+        return []
+
+    @staticmethod
+    def _mtools(args):
+        env = dict(os.environ, MTOOLS_SKIP_CHECK="1", MTOOLS_NO_VFAT="0")
+        p = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+        if p.returncode != 0:
+            raise SysError(" ".join(args[:1]) + " failed: " + p.stdout.decode("utf-8", "replace").strip())
+        return p.stdout.decode("utf-8", "replace")
+
+    @staticmethod
+    def _tree(root):
+        out = {}
+        for base, dirs, files in os.walk(root):
+            for d in dirs:
+                out[os.path.relpath(os.path.join(base, d), root)] = None
+            for f in files:
+                p = os.path.join(base, f)
+                with open(p, "rb") as fh:
+                    out[os.path.relpath(p, root)] = hashlib_sha256(fh.read())
+        return out
+
+    @contextlib.contextmanager
+    def mounted(self, disk, part, fstype, write=False):
+        if part.name in self.dirs:
+            yield self.dirs[part.name]
+            return
+        if fstype != "vfat":
+            raise SysError(f"{part.name}: {fstype} is not readable from a test image (use LUMIA_TEST_DIRS)")
+        img = self.partition_node(disk, part)
+        mnt = tempfile.mkdtemp(prefix="lumia-img-")
+        try:
+            listing = self._mtools(["mdir", "-b", "-i", img, "::/"])
+            if listing.strip():
+                self._mtools(["mcopy", "-s", "-n", "-p", "-m", "-i", img] + [
+                    "::/" + os.path.basename(x.strip().rstrip("/")) for x in listing.splitlines() if x.strip()] + [mnt])
+            before = self._tree(mnt)
+            yield mnt
+            if not write:
+                return
+            after = self._tree(mnt)
+            for rel in sorted(set(before) - set(after), key=len, reverse=True):
+                self._mtools(["mrd" if before[rel] is None else "mdel", "-i", img, "::/" + rel.replace(os.sep, "/")])
+            for rel in sorted(after, key=len):
+                dst = "::/" + rel.replace(os.sep, "/")
+                if after[rel] is None and rel not in before:
+                    self._mtools(["mmd", "-i", img, dst])
+                elif after[rel] is not None and before.get(rel) != after[rel]:
+                    self._mtools(["mcopy", "-o", "-i", img, os.path.join(mnt, rel), dst])
+        finally:
+            shutil.rmtree(mnt, ignore_errors=True)
+
+    def bcd_backend(self):
+        from . import bcd
+        return "hivex" if bcd.hivex_available() else None
+
+    def missing_requirements(self):
+        return [] if shutil.which("mcopy") else [("mtools", "mcopy, mdir, mmd, mdel, mrd")]
+
+
+def hashlib_sha256(b):
+    import hashlib
+    return hashlib.sha256(b).hexdigest()
+
+
 def get_system(root_dir, test_mode=False):
+    image = os.environ.get("LUMIA_TEST_DISK") if test_mode else None
+    if image:
+        dirs = {}
+        for item in (os.environ.get("LUMIA_TEST_DIRS") or "").split(";"):
+            if "=" in item:
+                k, v = item.split("=", 1)
+                dirs[k.strip()] = v.strip()
+        return ImageSystem(root_dir, image, dirs)
     return (WindowsSystem if IS_WINDOWS else LinuxSystem)(root_dir, test_mode)
 
 
