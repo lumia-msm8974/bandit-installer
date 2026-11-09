@@ -204,7 +204,7 @@ class LayoutTest(unittest.TestCase):
 
 
 class MartiniLayoutTest(LayoutTest):
-    """Same checks on the Lumia 930 table (synthetic until a real 930 GPT is read)."""
+    """Same checks on the Lumia 930 table (GPT of its official FFU)."""
     TABLE = LUMIA930
 
     def test_userdata_does_not_depend_on_mainos(self):
