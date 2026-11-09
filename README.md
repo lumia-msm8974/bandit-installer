@@ -1,9 +1,19 @@
-# Lumia 1520 Android installer (bandit)
+# Lumia MSM8974 Android installer (bandit, martini)
 
-An installer for the unofficial **LineageOS 18.1 (Android 11)** port to the Nokia Lumia 1520
-(RM-937/RM-938/RM-939/RM-940, codename **bandit**), for **Windows and Linux**, with a desktop app
-window in the style of Windows 10 and a terminal mode (`--text`). The interface is in English, with
-Italian available in the settings or with `--lang it`.
+An installer for the unofficial **LineageOS 18.1 (Android 11)** ports to the Nokia Lumias built on the
+Qualcomm MSM8974, for **Windows and Linux**, with a desktop app window in the style of Windows 10 and a
+terminal mode (`--text`). The interface is in English, with Italian available in the settings or with
+`--lang it`.
+
+| Phone | Codename | Models | State |
+|---|---|---|---|
+| Nokia Lumia 1520 | `bandit` | RM-937, RM-938, RM-939, RM-940 | all modes; ROM and TWRP released |
+| Nokia Lumia 930 | `martini` | RM-1045 (RM-1087 unconfirmed) | **in preparation**: backup, firmware and boot chain; lk1st never booted, no ROM or TWRP yet, so Full, Clean and Update are locked |
+
+The Lumia Icon / 929 (RM-927) shares the `martini` codename but has its own Windows firmware set:
+it is refused. Pick the phone on the install page (or `--device bandit|martini`); the installer also
+reads the model from the phone itself (`Nokia/product.dat` in DPP) before it writes anything and stops
+if it does not match.
 
 Android starts from the phone's own Windows Phone boot manager:
 
@@ -84,6 +94,23 @@ Every step is saved in `work/state.json`: run **Full** again and it continues wh
 (also after phase 2 was interrupted: with the Android table already written it formats and provisions
 again, and never asks to erase Windows twice).
 
+### One installer, several phones
+
+Everything that differs between the phones is in
+[`bandit_installer/devices.py`](bandit_installer/devices.py) and in the per-phone sections of
+[`payload/payload.json`](payload/payload.json): model codes, ROM and TWRP names, lk1st builds and test
+kernels, which modes are ready. The rest is shared, because the phones have the same Windows Phone 8.1
+boot manager and the same Spec B partition set: BCD entry, phase 2 table, provisioning, TWRP over adb.
+
+- A TWRP image is accepted only when it is pinned in `checksums.sha256` **and** its name carries the
+  codename (`twrp-…-bandit.img`); the TWRP of another phone is refused by name.
+- A ROM is accepted only when its OTA metadata lists the phone (`pre-device`); zips without metadata
+  are refused.
+- The model is read from DPP in mass storage (backup, firmware, boot chain, restore) and again in TWRP
+  before phase 2, Clean or Update.
+- Phase 2 refuses an EFIESP that holds the lk1st of another phone, and **Restore EFIESP** refuses a
+  backup taken from another phone (different disk GUID).
+
 ### Clean and Update
 
 1. The ROM zip and the TWRP image are checked (SHA-256) before anything touches the phone.
@@ -93,7 +120,7 @@ again, and never asks to erase Windows twice).
 4. The Android partitions must be there (otherwise: use Full).
 5. **Clean**: you type `ERASE`, then `twrp format data`, `wipe cache`, `wipe dalvik`.
    **Update**: the installed system is read from the system partition; if it is not LineageOS 18.1
-   for bandit you must type `UPDATE` to go on (otherwise use Clean).
+   for this phone you must type `UPDATE` to go on (otherwise use Clean).
 6. `adb sideload` of the ROM, TWRP log check, boot partition check, restart.
 
 ## Files you need
@@ -101,13 +128,13 @@ again, and never asks to erase Windows twice).
 | File | Where | Where from |
 |---|---|---|
 | The installer | anywhere with a few GB free | [releases](https://github.com/lumia-msm8974/bandit-installer/releases): `bandit-installer-<version>-windows.zip` (with its own Python) or `-linux.tar.gz` |
-| ROM: `lineage-18.1-YYYYMMDD-UNOFFICIAL-bandit.zip` **and** `SHA256SUMS` | `rom/` in the installer folder | [android_device_nokia_bandit releases](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases) |
-| TWRP: `twrp-3.7.0_9-1-bandit.img` | `twrp/` in the installer folder (downloaded by the installer if missing) | [release `twrp-bandit-20261102`](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102) |
+| ROM: `lineage-18.1-YYYYMMDD-UNOFFICIAL-<codename>.zip` **and** `SHA256SUMS` | `rom/` in the installer folder | Lumia 1520: [android_device_nokia_bandit releases](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases); Lumia 930: none yet |
+| TWRP: `twrp-3.7.0_9-1-bandit.img` (1520) | `twrp/` in the installer folder (downloaded by the installer if missing) | [release `twrp-bandit-20261102`](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102); Lumia 930: none yet |
 | Platform Tools (`adb`, `fastboot`) | `tools/` (downloaded by the installer if missing) | Google |
 
 The ROM zip is checked against `SHA256SUMS` next to it (or `--rom-sha256`); the TWRP image against
-[`checksums.sha256`](checksums.sha256) (SHA-256 `c53687b5…ddabd2d`). The ROM zip must declare the
-bandit device; it contains the phone's firmware.
+[`checksums.sha256`](checksums.sha256) (SHA-256 `c53687b5…ddabd2d` for bandit). The ROM zip must declare
+the phone in its OTA metadata; it contains the phone's firmware.
 
 ## Requirements
 
@@ -136,10 +163,11 @@ installer.bat             :: Windows (asks for administrator rights)
 
 | Option | Meaning |
 |---|---|
+| `--device bandit\|martini` | the phone (default: the one chosen last, else `bandit`) |
 | `--mode full\|clean\|update` | start that mode without the menu |
-| `--rom <zip>` | ROM zip (default: the `lineage-18.1-*-bandit.zip` in `rom/`) |
+| `--rom <zip>` | ROM zip (default: the `lineage-18.1-*-<codename>.zip` in `rom/`) |
 | `--rom-sha256 <hash>` | expected SHA-256 of the ROM (default: `SHA256SUMS` next to the zip) |
-| `--twrp <img>` | TWRP image (default: `twrp/twrp-3.7.0_9-1-bandit.img`); it must be listed in `checksums.sha256` |
+| `--twrp <img>` | TWRP image (default: the phone's one in `twrp/`); it must be listed in `checksums.sha256` with the phone's codename in its name |
 | `--phase2-recovery <img>` | advanced: recovery for phase 2 instead of TWRP (it needs adb root, `dd`, `mke2fs`, `blockdev`) |
 | `--serial <serial>` | use only this phone when more than one device is on adb/fastboot (also `ANDROID_SERIAL`) |
 | `--adb <path>`, `--fastboot <path>` | use these executables |
@@ -159,7 +187,7 @@ copies), `private/` (firmware), `logs/` (session logs, TWRP `recovery.log` of ev
 
 ## Updating later
 
-Put the new `lineage-18.1-…-bandit.zip` and its `SHA256SUMS` in `rom/` (remove the old zip), enable
+Put the new `lineage-18.1-…-<codename>.zip` and its `SHA256SUMS` in `rom/` (remove the old zip), enable
 USB debugging in Android (Settings → System → Developer options) and run **Update**. Data is kept.
 
 ## Safety
@@ -177,7 +205,11 @@ USB debugging in Android (Settings → System → Developer options) and run **U
   writing, and every partition outside Data, MainOS and MMOS stays byte for byte as it was.
 - The BCD is never copied from another phone: the new entry takes the EFIESP device element from an
   entry already on the same partition, and the new BCD is read back and checked before it is written.
-- The kit files have pinned SHA-256 hashes ([`payload/payload.json`](payload/payload.json)).
+- The kit files have pinned SHA-256 hashes ([`payload/payload.json`](payload/payload.json)), and the
+  entry point of each lk1st ELF must match the one written in the kit. An lk1st never tried on a phone
+  is marked *untested* and the boot chain step says how to go back before writing it.
+- The phone model is read from the phone (DPP) and must match the chosen phone: see
+  [One installer, several phones](#one-installer-several-phones).
 - The local app window is served on `127.0.0.1` only, on a random port, with a random token.
 - With more than one Android device connected the installer stops: disconnect the others or use
   `--serial`.
@@ -233,10 +265,13 @@ The single steps are also available on their own, for development and recovery:
 
 | Part | State |
 |---|---|
-| BootShim `elf-loader-pre3` + lk1st `base-0ff` | fastboot verified on an RM-937 (2026-11-01) |
+| BootShim `elf-loader-pre3` + lk1st `base-0ff` (1520) | fastboot verified on an RM-937 (2026-11-01) |
+| lk1st `base-7cc` and `base-0ff` (930) | built from [lumia-msm8974/lk2nd](https://github.com/lumia-msm8974/lk2nd) branch `martini`, ELF checked; **never booted** (no 930 available yet) |
 | Phase 2 sequence (GPT, format, provisioning) | run on an RM-937 with the ROM's recovery (2026-11-01); in the installer with TWRP: simulated phone only |
 | TWRP 3.7.0_9-1 in RAM, `adb sideload` of the ROM | verified on an RM-937 (2026-11-02) |
 | Clean/Update flow of the installer | simulated phone only (`tests/test_flows.py`) |
+| Backup, firmware, boot chain, EFIESP restore | simulated phone only (`tests/test_mass.py`, disk image through mtools) |
+| Lumia 930 partition table | synthetic (1520 table with the MainOS/Data split Markynose measured); to be replaced by a real 930 GPT |
 | Linux BCD writer (hivex) | output byte-identical to the kit script used on the phone |
 | Windows BCD writer (bcdedit), Windows disk/USB detection | written, **not yet run on Windows** |
 
@@ -246,10 +281,25 @@ The single steps are also available on their own, for development and recovery:
 python3 -m unittest discover -s tests
 ```
 
-`tests/test_layout.py` compares the computed partition table with what `parted` produces from the
-Android4Lumia950 `partition.sh`. `tests/test_flows.py` runs the three modes in `--text` mode against
-a fake phone (`tests/fake/adb`, `tests/fake/fastboot`) whose eMMC is a sparse disk image with the
-1520's partition table: nothing talks to a real device. They need `sfdisk`, `mkfs.fat` and mtools.
+Nothing talks to a real device. The tests need `sfdisk`, `mkfs.fat` and mtools.
+
+- `tests/test_layout.py` compares the computed partition table with what `parted` produces from the
+  Android4Lumia950 `partition.sh`, on the 1520 table and on the (synthetic) 930 table.
+- `tests/test_flows.py` runs the three modes in `--text` mode against a fake phone (`tests/fake/adb`,
+  `tests/fake/fastboot`) whose eMMC is a sparse disk image with the 1520's partition table.
+- `tests/test_mass.py` runs the mass storage tasks (backup, firmware, boot chain, EFIESP restore) with
+  `--test` on a disk image (`LUMIA_TEST_DISK`, read and written with mtools, no root): model checks,
+  the wrong phone, the Lumia Icon, locked modes on the 930. The boot chain test needs `python3-hivex`
+  and a real BCD (`LUMIA_TEST_BCD=<EFI/Microsoft/Boot/BCD of a phone backup>`); none is shipped.
+
+`tests/docker/run-tests.sh` runs everything in a Debian container that has `python3-hivex`:
+
+```bash
+LUMIA_TEST_BCD=/path/to/BCD tests/docker/run-tests.sh -v
+```
+
+The same `--test` mode rehearses the mass storage steps on a copy of a real phone's full backup
+(`LUMIA_TEST_DISK=copy.img`, `LUMIA_TEST_DIRS="MainOS=<folder with the Windows files>"`).
 
 ## Layout
 
@@ -259,6 +309,7 @@ checksums.sha256   pinned TWRP image(s)
 rom/, twrp/        where the ROM zip (+ SHA256SUMS) and the TWRP image go
 bandit_installer/
   app.py       arguments, privileges, text interface
+  devices.py   the phones: models, ROM/TWRP names, payload folder, modes ready
   web.py       local server and app window
   web/         the interface (one HTML file)
   steps.py     the tasks and the three modes
@@ -272,8 +323,8 @@ bandit_installer/
   images.py    BootShim ELF checks, boot image header, PIL firmware split
   phone.py     phone mode from USB ids, fastboot and adb
   sysdeps.py   Linux and Windows specifics
-payload/       BootShim, lk1st, K1 and their pinned hashes
-tests/         layout and flow tests, fake adb/fastboot
+payload/       BootShim (shared); bandit/ and martini/: lk1st builds, test kernels; pinned hashes
+tests/         layout, flow and mass storage tests, fake adb/fastboot, Docker runner
 ```
 
 ## Credits
@@ -284,15 +335,22 @@ tests/         layout and flow tests, fake adb/fastboot
   installer takes as its model.
 - **imbushuo (Bingxing Wang)**: [boot-shim](https://github.com/imbushuo/boot-shim), release
   `elf-loader-pre3` (ARM32), the UEFI application that loads lk1st. Included unmodified.
-- **msm8916-mainline**: [lk2nd](https://github.com/msm8916-mainline/lk2nd), base of lk1st; bandit port in
-  [lumia-msm8974/lk2nd](https://github.com/lumia-msm8974/lk2nd) (branch `bandit`).
+- **msm8916-mainline**: [lk2nd](https://github.com/msm8916-mainline/lk2nd), base of lk1st; Lumia ports in
+  [lumia-msm8974/lk2nd](https://github.com/lumia-msm8974/lk2nd) (branches `bandit` and `martini`).
+- **Mainline4Lumia** (Dominduchami): [lk2nd `martini-support`](https://github.com/Mainline4Lumia/lk2nd/tree/martini-support),
+  the Lumia 930 lk1st device tree and its 0x7CC00000 load address.
 - **KorelisLabs**: [lumia-1520-mainline](https://github.com/KorelisLabs/lumia-1520-mainline): 1520 boot
   chain, lk1st device tree and load address, and the PIL split format reproduced in `images.py`.
 - **René Lergner (HeathCliff)**: [WPinternals](https://github.com/ReneLergner/WPinternals), unlock and
   mass storage mode.
 - **TeamWin**: [TWRP](https://twrp.me), the recovery the installer starts in RAM (bandit build from
   [android_device_nokia_bandit](https://github.com/lumia-msm8974/android_device_nokia_bandit/tree/twrp-9.0)).
-- **Markynose**: BootShim → lk1st chain on the Lumia 930.
+- **Markynose (Mark Buchok)**: [lumia930-linux](https://github.com/Markynose/lumia930-linux), the
+  BootShim → lk1st chain on the Lumia 930 (ELF entry 0x7cc00000) and the Data start of a 32 GB 930
+  used by the synthetic 930 table in the tests.
+- **zh / hao (2314372037)**: [android_device_nokia_martini](https://github.com/2314372037/android_device_nokia_martini)
+  and its [installer](https://github.com/2314372037/installer) branch `martini`: the 930 model codes and
+  the confirmation that the 950 XL partition scheme fits the 930.
 - **LineageOS** and the `oppo_msm8974` kernel the bandit kernel is based on.
 - Google for the Android Platform Tools and USB driver.
 - The **Python Software Foundation**: the Windows package includes the official
@@ -302,7 +360,10 @@ tests/         layout and flow tests, fake adb/fastboot
 
 ## In italiano
 
-Installer per LineageOS 18.1 (Android 11) sul Lumia 1520, per Windows e Linux, con una finestra
+Installer per LineageOS 18.1 (Android 11) sui Lumia MSM8974: Lumia 1520 (`bandit`) e, in preparazione,
+Lumia 930 (`martini`, RM-1045: per ora solo backup, firmware e catena di avvio, lk1st mai avviato).
+Il telefono si sceglie nella pagina di installazione o con `--device`; l'installer legge comunque il
+modello dal telefono (DPP) e si ferma se non corrisponde. Per Windows e Linux, con una finestra
 desktop in stile Windows 10 (interfaccia in inglese, italiano dalle impostazioni o con `--lang it`;
 `--text` per il terminale). Tre modalità: **Completa** (da Windows sbloccato con WPinternals: backup,
 catena BootShim → lk1st, partizioni Android con **Windows cancellato**, ROM), **Pulita** (partizioni

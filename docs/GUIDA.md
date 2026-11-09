@@ -5,6 +5,12 @@
 Questa guida porta un Lumia 1520 con Windows 10 Mobile (o Windows Phone 8.1) al port non ufficiale
 di **LineageOS 18.1** (Android 11), e spiega come reinstallarlo o aggiornarlo in seguito.
 
+> **Lumia 930 (martini, RM-1045):** l'installer lo conosce già, ma per ora sono disponibili solo backup,
+> estrazione del firmware e catena di avvio, con un lk1st mai avviato. Per il 930 non ci sono ancora ROM
+> né TWRP, quindi Completa, Pulita e Aggiornamento restano bloccate. Scegli il telefono nella pagina di
+> installazione (o con `--device martini`); l'installer controlla il modello sul telefono prima di
+> scrivere qualsiasi cosa. Il resto della guida descrive il Lumia 1520.
+
 > **Non ufficiale e sperimentale.** L'installazione **Completa** **cancella Windows 10 Mobile e tutto
 > quello che c'è sul telefono** (app, foto, file). Per tornare a Windows serve un'immagine FFU di
 > Windows scritta con WPinternals o Windows Device Recovery Tool. Fai i backup che l'installer propone
