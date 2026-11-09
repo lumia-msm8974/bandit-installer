@@ -1,35 +1,69 @@
 {
-  "device": "Nokia Lumia 1520 (bandit, RM-937/RM-938/RM-940)",
   "bootshim": {
     "path": "bootshim/BootShim.efi",
     "sha256": "21fc9efd2090ece34fe681a513cc87f3590265100412b214128b5a12b3cc4981",
     "source": "imbushuo/boot-shim, release elf-loader-pre3 (ARM32)"
   },
-  "lk1st": [
-    {
-      "id": "base-0ff",
-      "path": "lk1st/base-0ff/emmc_appsboot.mbn",
-      "sha256": "bda72d086d80ea43f529b1ee847465e9a45cc7d4c6873ca0d11bd7bfe093b827",
-      "entry": "0x0ff00000",
-      "status": "verified",
-      "title_it": "lk1st base (0x0FF00000)",
-      "title_en": "lk1st base (0x0FF00000)",
-      "note_it": "Fastboot verificato su RM-937 il 01/11/2026. Schermo fermo: lk1st non usa il display.",
-      "note_en": "Fastboot verified on an RM-937 on 2026-11-01. The screen does not change: this lk1st does not drive the display.",
-      "source": "lumia-msm8974/lk2nd branch bandit, c6967d7b built with MEMBASE=0x0FF00000"
+  "devices": {
+    "bandit": {
+      "name": "Nokia Lumia 1520 (bandit, RM-937/RM-938/RM-939/RM-940)",
+      "lk1st": [
+        {
+          "id": "base-0ff",
+          "path": "bandit/lk1st/base-0ff/emmc_appsboot.mbn",
+          "sha256": "bda72d086d80ea43f529b1ee847465e9a45cc7d4c6873ca0d11bd7bfe093b827",
+          "entry": "0x0ff00000",
+          "status": "verified",
+          "title_it": "lk1st base (0x0FF00000)",
+          "title_en": "lk1st base (0x0FF00000)",
+          "note_it": "Fastboot verificato su RM-937 il 01/11/2026. Schermo fermo: lk1st non usa il display.",
+          "note_en": "Fastboot verified on an RM-937 on 2026-11-01. The screen does not change: this lk1st does not drive the display.",
+          "source": "lumia-msm8974/lk2nd branch bandit, c6967d7b built with MEMBASE=0x0FF00000"
+        }
+      ],
+      "boot": [
+        {
+          "id": "k1",
+          "path": "bandit/boot/k1/boot-k1.img",
+          "sha256": "ac35a58ff40e023f01b527e6da9ccb05120d4ce67dbba9590fa77d3cdd8ef55c",
+          "status": "untested",
+          "title_it": "K1, primo kernel bandit",
+          "title_en": "K1, first bandit kernel",
+          "note_it": "Kernel 3.4 con init minimale: log su schermo e seriale USB 18d1:d00e. Solo in RAM, mai avviato.",
+          "note_en": "3.4 kernel with a minimal init: log on screen and on USB serial 18d1:d00e. RAM only, never booted yet.",
+          "serial": "18d1:d00e"
+        }
+      ]
+    },
+    "martini": {
+      "name": "Nokia Lumia 930 (martini, RM-1045)",
+      "lk1st": [
+        {
+          "id": "base-7cc",
+          "path": "martini/lk1st/base-7cc/emmc_appsboot.mbn",
+          "sha256": "913ab854dab9fb919578cd92310038e2be9e0cdff804ccfba417d88f17764adb",
+          "entry": "0x7cc00000",
+          "status": "untested",
+          "title_it": "lk1st 930 (0x7CC00000)",
+          "title_en": "lk1st 930 (0x7CC00000)",
+          "note_it": "Mai avviato: telefono non ancora provato. Stesso indirizzo e stessa base lk2nd della catena BootShim di Markynose (lumia930-linux). Schermo: cont-splash.",
+          "note_en": "Never booted: not tried on a phone yet. Same address and lk2nd base as Markynose's BootShim chain (lumia930-linux). Screen: cont-splash.",
+          "source": "lumia-msm8974/lk2nd branch martini, 5650648a, built with kit/scripts/build-lk1st.sh"
+        },
+        {
+          "id": "base-0ff",
+          "path": "martini/lk1st/base-0ff/emmc_appsboot.mbn",
+          "sha256": "4fb3db303850daf3050185cbbffa020d34b40eca12f1ecc4dc1f0f4cfe5879c3",
+          "entry": "0x0ff00000",
+          "status": "untested",
+          "title_it": "lk1st 930 (0x0FF00000, ripiego)",
+          "title_en": "lk1st 930 (0x0FF00000, fallback)",
+          "note_it": "Mai avviato. Indirizzo del 1520 e dei port 930 che partono da Stage2: da provare solo se la variante 0x7CC00000 non arriva a fastboot.",
+          "note_en": "Never booted. The 1520's address, also used by the 930 ports that start from Stage2: try it only if the 0x7CC00000 build does not reach fastboot.",
+          "source": "lumia-msm8974/lk2nd branch martini, 5650648a, built with kit/scripts/build-lk1st.sh"
+        }
+      ],
+      "boot": []
     }
-  ],
-  "boot": [
-    {
-      "id": "k1",
-      "path": "boot/k1/boot-k1.img",
-      "sha256": "ac35a58ff40e023f01b527e6da9ccb05120d4ce67dbba9590fa77d3cdd8ef55c",
-      "status": "untested",
-      "title_it": "K1, primo kernel bandit",
-      "title_en": "K1, first bandit kernel",
-      "note_it": "Kernel 3.4 con init minimale: log su schermo e seriale USB 18d1:d00e. Solo in RAM, mai avviato.",
-      "note_en": "3.4 kernel with a minimal init: log on screen and on USB serial 18d1:d00e. RAM only, never booted yet.",
-      "serial": "18d1:d00e"
-    }
-  ]
+  }
 }

@@ -26,7 +26,7 @@ REPO = os.path.dirname(HERE)
 sys.path.insert(0, REPO)
 sys.path.insert(0, HERE)
 
-from bandit_installer import android, fat, gpt, layout  # noqa: E402
+from bandit_installer import android, devices, fat, gpt, layout  # noqa: E402
 from test_layout import DISK_SECTORS, LUMIA1520, sfdisk_script  # noqa: E402
 
 FAKE = os.path.join(HERE, "fake")
@@ -102,12 +102,12 @@ class FlowTest(unittest.TestCase):
                         ignore=shutil.ignore_patterns("__pycache__"))
         shutil.copytree(os.path.join(REPO, "payload"), os.path.join(cls.inst, "payload"))
         shutil.copy(os.path.join(REPO, "installer.py"), cls.inst)
-        cls.twrp = os.path.join(t, android.TWRP_NAME)
+        cls.twrp = os.path.join(t, devices.BANDIT.twrp_name)
         with open(cls.twrp, "wb") as f:
             f.write(boot_image("twrp"))
         cls.twrp_sha = sha(readb(cls.twrp))
         with open(os.path.join(cls.inst, android.CHECKSUMS), "w") as f:
-            f.write(f"# test\n{cls.twrp_sha}  {android.TWRP_NAME}\n")
+            f.write(f"# test\n{cls.twrp_sha}  {devices.BANDIT.twrp_name}\n")
         cls.other_twrp = os.path.join(t, "twrp-other.img")
         with open(cls.other_twrp, "wb") as f:
             f.write(boot_image("other"))
@@ -118,7 +118,7 @@ class FlowTest(unittest.TestCase):
             cls.boot = z.read("boot.img")
         cls.other_rom = cls.make_rom("lineage-18.1-20261102-UNOFFICIAL-talkman.zip", "talkman", folder="other")
         # disks
-        cls.lk = readb(os.path.join(REPO, "payload", "lk1st", "base-0ff", "emmc_appsboot.mbn"))
+        cls.lk = readb(os.path.join(REPO, "payload", "bandit", "lk1st", "base-0ff", "emmc_appsboot.mbn"))
         cls.win_disk = cls.make_windows_disk(os.path.join(t, "windows.img"))
         cls.android_disk = os.path.join(t, "android.img")
         subprocess.run(["cp", "--sparse=always", cls.win_disk, cls.android_disk], check=True)
@@ -127,6 +127,23 @@ class FlowTest(unittest.TestCase):
         write_at(cls.android_disk, 0, plan.after.primary())
         write_at(cls.android_disk, plan.after.backup_lba_start(), plan.after.backup())
         cls.guid = read_gpt(cls.win_disk).disk_guid
+        # the same Android layout, but the DPP of a Lumia 930: a phone that is not the chosen one
+        cls.android930_disk = os.path.join(t, "android930.img")
+        subprocess.run(["cp", "--sparse=always", cls.android_disk, cls.android930_disk], check=True)
+        w = os.path.join(t, "dpp930")
+        os.makedirs(w)
+        with open(os.path.join(w, "product.dat"), "w", newline="\r\n") as f:
+            f.write("TYPE:RM-1045\nLPSN:TEST0002\n")
+        write_at(cls.android930_disk, ROWS["DPP"][0],
+                 fat_image(os.path.join(w, "dpp.img"), ROWS["DPP"][1] // 2, ["Nokia"],
+                           [(os.path.join(w, "product.dat"), "Nokia/product.dat")]))
+        # a TWRP pinned for another phone, and a ROM without OTA metadata
+        cls.martini_twrp = os.path.join(t, "twrp-3.7.0_9-0-martini.img")
+        with open(cls.martini_twrp, "wb") as f:
+            f.write(boot_image("twrp-martini"))
+        with open(os.path.join(cls.inst, android.CHECKSUMS), "a") as f:
+            f.write(f"{sha(readb(cls.martini_twrp))}  twrp-3.7.0_9-0-martini.img\n")
+        cls.nometa_rom = cls.make_rom("lineage-18.1-20261102-UNOFFICIAL-bandit.zip", None, folder="nometa")
 
     @classmethod
     def make_rom(cls, name, devices, folder="rom"):
@@ -134,8 +151,9 @@ class FlowTest(unittest.TestCase):
         os.makedirs(d, exist_ok=True)
         path = os.path.join(d, name)
         with zipfile.ZipFile(path, "w") as z:
-            z.writestr("META-INF/com/android/metadata",
-                       f"ota-type=BLOCK\npost-sdk-level=30\npre-device={devices}\n")
+            if devices:
+                z.writestr("META-INF/com/android/metadata",
+                           f"ota-type=BLOCK\npost-sdk-level=30\npre-device={devices}\n")
             z.writestr("META-INF/com/google/android/update-binary", "fake")
             z.writestr("boot.img", boot_image("rom", 3 * 4096))
             z.writestr("system.new.dat.br", os.urandom(4096))
@@ -144,12 +162,12 @@ class FlowTest(unittest.TestCase):
         return path
 
     @classmethod
-    def make_windows_disk(cls, path):
+    def make_windows_disk(cls, path, model="RM-937"):
         with open(path, "wb") as f:
             f.truncate(DISK_SECTORS * gpt.SECTOR)
         subprocess.run(["sfdisk", "-q", "--no-reread", "--no-tell-kernel", path], input=sfdisk_script(),
                        text=True, check=True, env=dict(os.environ, LC_ALL="C"))
-        w = os.path.join(cls.tmp, "fat")
+        w = os.path.join(cls.tmp, "fat-" + os.path.basename(path))
         os.makedirs(w)
         prov = {"WLAN.PROVISION": b"\x01\x02\x03" + bytes.fromhex("".join(WLAN_MACS)),
                 "BT.PROVISION": b"\x01\x06" + bytes.fromhex(BT_MAC),
@@ -158,8 +176,10 @@ class FlowTest(unittest.TestCase):
             with open(os.path.join(w, n), "wb") as f:
                 f.write(data)
         cls.clpc = prov["WLAN_CLPC.PROVISION"]
-        dpp = fat_image(os.path.join(w, "dpp.img"), ROWS["DPP"][1] // 2, ["QCOM"],
-                        [(os.path.join(w, n), "QCOM/" + n) for n in prov])
+        with open(os.path.join(w, "product.dat"), "w", newline="\r\n") as f:
+            f.write(f"TYPE:{model}\nLPSN:TEST0001\nHWID:5301\n")
+        dpp = fat_image(os.path.join(w, "dpp.img"), ROWS["DPP"][1] // 2, ["QCOM", "Nokia"],
+                        [(os.path.join(w, n), "QCOM/" + n) for n in prov] + [(os.path.join(w, "product.dat"), "Nokia/product.dat")])
         write_at(path, ROWS["DPP"][0], dpp)
         with open(os.path.join(w, "emmc_appsboot.mbn"), "wb") as f:
             f.write(cls.lk)
@@ -185,8 +205,8 @@ class FlowTest(unittest.TestCase):
     def run_installer(self, name, mode, stdin="", disk="android", phone="device", env=None, args=(), steps=None):
         s = os.path.join(self.tmp, "cases", name)
         os.makedirs(s)
-        subprocess.run(["cp", "--sparse=always", self.android_disk if disk == "android" else self.win_disk,
-                        os.path.join(s, "disk.img")], check=True)
+        src = {"android": self.android_disk, "android930": self.android930_disk}.get(disk, self.win_disk)
+        subprocess.run(["cp", "--sparse=always", src, os.path.join(s, "disk.img")], check=True)
         with open(os.path.join(s, "state"), "w") as f:
             f.write(phone)
         work = os.path.join(s, "work")
@@ -294,8 +314,38 @@ class FlowTest(unittest.TestCase):
     def test_rom_for_other_device(self):
         rc, out = self.run_installer("other-dev", "update", args=["--rom", self.other_rom])
         self.assertEqual(rc, 1, out)
-        self.assertIn("not for the Lumia 1520", out)
+        self.assertIn("not for the Lumia 1520 (bandit)", out)
         self.assertUntouched()
+
+    def test_rom_without_metadata(self):
+        rc, out = self.run_installer("no-meta", "update", args=["--rom", self.nometa_rom])
+        self.assertEqual(rc, 1, out)
+        self.assertIn("does not say which phone it is for", out)
+        self.assertUntouched()
+
+    def test_twrp_of_other_phone(self):
+        rc, out = self.run_installer("twrp-930", "update", args=["--twrp", self.martini_twrp])
+        self.assertEqual(rc, 1, out)
+        self.assertIn("a TWRP for another phone", out)
+        self.assertUntouched()
+
+    def test_update_on_wrong_phone(self):
+        rc, out = self.run_installer("wrong-phone", "update", disk="android930")
+        self.assertEqual(rc, 1, out)
+        self.assertIn("The phone is an RM-1045 (Lumia 930 (martini))", out)
+        self.assertEqual(self.file("installed"), "")
+        self.assertNotIn("sideload", self.file("calls.log"))
+
+    def test_clean_on_wrong_phone(self):
+        rc, out = self.run_installer("wrong-phone-clean", "clean", "ERASE\n", disk="android930")
+        self.assertEqual(rc, 1, out)
+        self.assertIn("RM-1045", out)
+        self.assertEqual(self.file("wiped"), "")
+
+    def test_update_model_checked(self):
+        rc, out = self.run_installer("model-ok", "update")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("Phone RM-937: Lumia 1520 (bandit)", out)
 
     def test_twrp_not_pinned(self):
         rc, out = self.run_installer("bad-twrp", "update", args=["--twrp", self.other_twrp])
@@ -411,7 +461,42 @@ class FlowTest(unittest.TestCase):
 class ChecksumsTest(unittest.TestCase):
     def test_twrp_pinned(self):
         self.assertEqual(android.twrp_hashes(REPO).get("c53687b54a394c553c5e8e6dacbc367d7ce91b4f536c59c5b8328dbe1ddabd2d"),
-                         android.TWRP_NAME)
+                         devices.BANDIT.twrp_name)
+
+    def test_twrp_per_device(self):
+        self.assertEqual(set(android.twrp_hashes(REPO, devices.BANDIT).values()), {devices.BANDIT.twrp_name})
+        self.assertEqual(android.twrp_hashes(REPO, devices.MARTINI), {})
+        self.assertTrue(devices.MARTINI.twrp_file("twrp-3.7.0_9-0-martini.img"))
+        self.assertFalse(devices.MARTINI.twrp_file("twrp-3.7.0_9-1-bandit.img"))
+        self.assertFalse(devices.BANDIT.twrp_file("twrp-banditx.img"))
+
+
+class DevicesTest(unittest.TestCase):
+    def test_models(self):
+        self.assertIs(devices.by_model("rm-937"), devices.BANDIT)
+        self.assertIs(devices.by_model("RM1045"), devices.MARTINI)
+        self.assertIs(devices.by_model("RM-1087"), devices.MARTINI)
+        self.assertIsNone(devices.by_model("RM-927"))   # Lumia Icon: other firmware set
+        self.assertIsNone(devices.by_model("RM-914"))   # Lumia 520
+
+    def test_product_dat(self):
+        d = devices.parse_product_dat("TYPE:RM-939\r\nLPSN:X\r\nHWID:5301\r\n")
+        self.assertEqual(d["TYPE"], "RM-939")
+
+    def test_payload_sections(self):
+        with open(os.path.join(REPO, "payload", "payload.json")) as f:
+            meta = json.load(f)
+        self.assertEqual(set(meta["devices"]), set(devices.DEVICES))
+        for code, sec in meta["devices"].items():
+            for e in sec["lk1st"] + sec["boot"]:
+                path = os.path.join(REPO, "payload", *e["path"].split("/"))
+                self.assertTrue(e["path"].startswith(code + "/"), e["path"])
+                self.assertEqual(sha(readb(path)), e["sha256"], e["path"])
+            for e in sec["lk1st"]:
+                from bandit_installer import images
+                elf = images.check_bootshim_elf(os.path.join(REPO, "payload", *e["path"].split("/")))
+                self.assertTrue(elf.ok, elf.errors)
+                self.assertEqual(elf.entry, int(e["entry"], 16), e["id"])
 
 
 if __name__ == "__main__":

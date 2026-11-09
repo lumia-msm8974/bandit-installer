@@ -13,6 +13,8 @@ Lumia 950 XL installer:
     -> boot partition = boot.img of the zip
     -> adb reboot
 
+Every ROM, TWRP and model check uses the profile of the phone in use (devices.py).
+
 Facts measured on an RM-937 with twrp-3.7.0_9-1-bandit.img:
 - adb sideload of the ROM stops around 47% with "Total xfer: 1.00x": normal for a
   block-based OTA, the installer reads the result from the TWRP log;
@@ -27,22 +29,16 @@ import re
 import time
 import zipfile
 
-from . import images
+from . import devices, fat, images
 from .core import Abort, Cancelled, human_size, stamp
 from .i18n import L
 
 BYNAME = "/dev/block/platform/msm_sdcc.1/by-name"
 DISK = "/dev/block/mmcblk0"
 ANDROID_PARTS = ("boot", "recovery", "system", "userdata", "cache", "persist", "modemst1", "modemst2")
-ROM_GLOB = "lineage-18.1-*-bandit.zip"
-ROM_DEVICES = ("bandit", "RM-937", "RM-938", "RM-939", "RM-940")
 ROM_SDK = "30"
-ROM_RELEASES = "https://github.com/lumia-msm8974/android_device_nokia_bandit/releases"
-TWRP_NAME = "twrp-3.7.0_9-1-bandit.img"
-TWRP_PAGE = "https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102"
-TWRP_URL = ("https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/download/"
-            "twrp-bandit-20261102/" + TWRP_NAME)
 CHECKSUMS = "checksums.sha256"
+PRODUCT_DAT = "Nokia/product.dat"
 
 SUCCESS_LINES = ("script succeeded: result was [1.000000]", "Updater process ended with RC=0")
 FAILURE_RE = re.compile(r"script aborted|Updater process ended with ERROR|Error installing zip|"
@@ -91,8 +87,10 @@ def pinned(root):
     return out
 
 
-def twrp_hashes(root):
-    return {h: n for n, h in pinned(root).items() if n.lower().startswith("twrp")}
+def twrp_hashes(root, device=None):
+    """{sha256: name} of the pinned TWRP images; with a device, only those for that phone."""
+    return {h: n for n, h in pinned(root).items()
+            if n.lower().startswith("twrp") and (device is None or device.twrp_file(n))}
 
 
 def _download(ctx, url, dest):
@@ -115,11 +113,15 @@ def _download(ctx, url, dest):
 def resolve_twrp(ctx):
     """Finds the TWRP image and checks it against checksums.sha256. Sets ctx.twrp."""
     ui = ctx.ui
+    dev = ctx.device
     ui.step(L("Controllo della TWRP", "Checking TWRP"))
-    known = twrp_hashes(ctx.root)
+    if not dev.twrp_name:
+        raise Abort(L(f"Per il {dev.title} non c'è ancora una TWRP: questa modalità non è disponibile.",
+                      f"There is no TWRP for the {dev.title} yet: this mode is not available."))
+    known = twrp_hashes(ctx.root, dev)
     if not known:
-        raise Abort(L(f"{CHECKSUMS} manca o non contiene la TWRP: il pacchetto dell'installer è incompleto.",
-                      f"{CHECKSUMS} is missing or lists no TWRP: the installer package is incomplete."))
+        raise Abort(L(f"{CHECKSUMS} manca o non contiene la TWRP del {dev.title}: il pacchetto dell'installer è incompleto.",
+                      f"{CHECKSUMS} is missing or lists no TWRP for the {dev.title}: the installer package is incomplete."))
     folder = os.path.join(ctx.root, "twrp")
     path = ctx.opts.get("twrp")
     if path:
@@ -127,25 +129,30 @@ def resolve_twrp(ctx):
         if not os.path.isfile(path):
             raise Abort(L(f"TWRP non trovata: {path}", f"TWRP not found: {path}"))
     else:
-        cands = [os.path.join(folder, TWRP_NAME)] + sorted(glob.glob(os.path.join(folder, "twrp*.img")))
+        cands = [os.path.join(folder, dev.twrp_name)] + sorted(
+            c for c in glob.glob(os.path.join(folder, "twrp*.img")) if dev.twrp_file(os.path.basename(c)))
         path = next((c for c in cands if os.path.isfile(c)), None)
         if not path:
             if not ui.confirm(L("Scaricare la TWRP?", "Download TWRP?"),
-                              L(f"{TWRP_NAME} (circa 20 MB) non è nella cartella twrp. Scaricarla da\n{TWRP_URL}?",
-                                f"{TWRP_NAME} (about 20 MB) is not in the twrp folder. Download it from\n{TWRP_URL}?"),
+                              L(f"{dev.twrp_name} (circa 20 MB) non è nella cartella twrp. Scaricarla da\n{dev.twrp_url}?",
+                                f"{dev.twrp_name} (about 20 MB) is not in the twrp folder. Download it from\n{dev.twrp_url}?"),
                               L("scarica", "download"), L("annulla", "cancel")):
-                raise Abort(L(f"Metti {TWRP_NAME} nella cartella {folder} (pagina: {TWRP_PAGE}).",
-                              f"Put {TWRP_NAME} in the folder {folder} (page: {TWRP_PAGE})."))
+                raise Abort(L(f"Metti {dev.twrp_name} nella cartella {folder} (pagina: {dev.twrp_page}).",
+                              f"Put {dev.twrp_name} in the folder {folder} (page: {dev.twrp_page})."))
             os.makedirs(folder, exist_ok=True)
-            path = os.path.join(folder, TWRP_NAME)
-            _download(ctx, TWRP_URL, path)
+            path = os.path.join(folder, dev.twrp_name)
+            _download(ctx, dev.twrp_url, path)
             ctx.give_back(folder)
     digest = sha256_progress(ctx, path, "TWRP SHA-256")
     if digest not in known:
+        other = twrp_hashes(ctx.root).get(digest)
+        if other:
+            raise Abort(L(f"{path} è {other}, una TWRP per un altro telefono: per il {dev.title} serve {dev.twrp_name}.",
+                          f"{path} is {other}, a TWRP for another phone: the {dev.title} needs {dev.twrp_name}."))
         raise Abort(L(f"{path} non è il file atteso (SHA-256 {digest}, nessuna corrispondenza in {CHECKSUMS}). "
-                      f"Scarica di nuovo {TWRP_NAME} dalla pagina della release.",
+                      f"Scarica di nuovo {dev.twrp_name} dalla pagina della release.",
                       f"{path} is not the expected file (SHA-256 {digest}, not listed in {CHECKSUMS}). "
-                      f"Download {TWRP_NAME} again from the release page."))
+                      f"Download {dev.twrp_name} again from the release page."))
     try:
         images.BootImage(path)
     except ValueError as e:
@@ -178,7 +185,8 @@ def find_rom_checksum(path):
 
 def _pick_rom(ctx):
     folder = os.path.join(ctx.root, "rom")
-    zips = sorted(glob.glob(os.path.join(folder, ROM_GLOB)))
+    dev = ctx.device
+    zips = sorted(glob.glob(os.path.join(folder, dev.rom_glob)))
     if len(zips) == 1:
         return zips[0]
     if len(zips) > 1:
@@ -189,10 +197,10 @@ def _pick_rom(ctx):
             raise Cancelled()
         return v
     r = ctx.ui.form(L("ROM", "ROM"),
-                    L(f"Nessuna ROM in {folder}. Scarica lineage-18.1-…-UNOFFICIAL-bandit.zip e il suo SHA256SUMS da\n"
-                      f"{ROM_RELEASES}\ne mettili in quella cartella, oppure scrivi qui il percorso dello zip.",
-                      f"No ROM in {folder}. Download lineage-18.1-…-UNOFFICIAL-bandit.zip and its SHA256SUMS from\n"
-                      f"{ROM_RELEASES}\nand put them in that folder, or type the path of the zip here."),
+                    L(f"Nessuna ROM in {folder}. Scarica lineage-18.1-…-UNOFFICIAL-{dev.codename}.zip e il suo SHA256SUMS da\n"
+                      f"{dev.rom_releases}\ne mettili in quella cartella, oppure scrivi qui il percorso dello zip.",
+                      f"No ROM in {folder}. Download lineage-18.1-…-UNOFFICIAL-{dev.codename}.zip and its SHA256SUMS from\n"
+                      f"{dev.rom_releases}\nand put them in that folder, or type the path of the zip here."),
                     [{"key": "path", "type": "text", "value": "", "label": L("Percorso dello zip", "Path of the zip")}],
                     L("avanti", "next"))
     if not r or not r["path"].strip():
@@ -204,6 +212,7 @@ def _pick_rom(ctx):
 def resolve_rom(ctx):
     """Finds the ROM zip, checks its SHA-256 and its contents. Sets ctx.rom."""
     ui = ctx.ui
+    dev = ctx.device
     ui.step(L("Controllo della ROM", "Checking the ROM"))
     path = ctx.opts.get("rom") or _pick_rom(ctx)
     path = os.path.abspath(os.path.expanduser(path))
@@ -246,12 +255,12 @@ def resolve_rom(ctx):
                     k, v = line.split("=", 1)
                     meta[k.strip()] = v.strip()
         devices = [d.strip() for d in meta.get("pre-device", "").split(",") if d.strip()]
-        if devices and not set(devices) & set(ROM_DEVICES):
-            raise Abort(L(f"{name} è per «{', '.join(devices)}», non per il Lumia 1520 (bandit).",
-                          f"{name} is for '{', '.join(devices)}', not for the Lumia 1520 (bandit)."))
-        if not meta:
-            ui.warn(L("Lo zip non ha i metadati OTA: dispositivo e versione non controllati (TWRP li controlla comunque).",
-                      "The zip has no OTA metadata: device and version not checked (TWRP still checks the device)."))
+        if not devices:
+            raise Abort(L(f"{name} non dice per quale telefono è (manca pre-device nei metadati OTA): non lo installo.",
+                          f"{name} does not say which phone it is for (no pre-device in its OTA metadata): not installing it."))
+        if not set(devices) & set(dev.rom_devices):
+            raise Abort(L(f"{name} è per «{', '.join(devices)}», non per il {dev.title}.",
+                          f"{name} is for '{', '.join(devices)}', not for the {dev.title}."))
         sdk = meta.get("post-sdk-level", "")
         if sdk and sdk != ROM_SDK:
             ui.warn(L(f"La ROM è Android SDK {sdk}: installer e TWRP sono pensati per LineageOS 18.1 (SDK {ROM_SDK}).",
@@ -263,7 +272,8 @@ def resolve_rom(ctx):
                 bh.update(b)
     ctx.rom = {"path": path, "name": name, "sha256": digest, "boot_size": info.file_size,
                "boot_sha": bh.hexdigest(), "build": meta.get("post-build", "")}
-    ui.ok(L(f"Zip installabile per bandit; boot.img {info.file_size} byte", f"Flashable zip for bandit; boot.img {info.file_size} bytes"))
+    ui.ok(L(f"Zip installabile per {dev.codename}; boot.img {info.file_size} byte",
+            f"Flashable zip for {dev.codename}; boot.img {info.file_size} bytes"))
     return ctx.rom
 
 
@@ -403,6 +413,43 @@ def wait_recovery(ctx, label="TWRP"):
     if out.strip() != "0":
         raise Abort(L(f"adb in {label} non è root (uid {out.strip()}).", f"adb in {label} is not root (uid {out.strip()})."))
     ui.ok(L(f"{label} pronta, adb root", f"{label} ready, adb root"))
+    check_model_in_recovery(ctx)
+
+
+def model_from_dpp(data):
+    """TYPE of DPP Nokia/product.dat (for example 'RM-937') from the raw DPP partition, or None."""
+    try:
+        text = fat.FatImage(data).read(PRODUCT_DAT).decode("ascii", "replace")
+    except (fat.FatError, ValueError):
+        return None
+    return devices.normalize_model(devices.parse_product_dat(text).get("TYPE", "")) or None
+
+
+def check_model(ctx, model, where):
+    """Stops when the phone is not the one the profile in use is for."""
+    dev = ctx.device
+    if not model:
+        ctx.ui.warn(L(f"Modello del telefono non leggibile ({where}): controlla tu che sia un {dev.title}.",
+                      f"Could not read the phone model ({where}): make sure it is a {dev.title}."))
+        return None
+    if dev.matches_model(model):
+        extra = (L(" (codice non ancora confermato)", " (code not confirmed yet)")
+                 if model in dev.unverified_models else "")
+        ctx.ui.ok(L(f"Telefono {model}: {dev.title}{extra}", f"Phone {model}: {dev.title}{extra}"))
+        return model
+    other = devices.by_model(model)
+    if other:
+        raise Abort(L(f"Il telefono è un {model} ({other.title}), ma l'installer è impostato sul {dev.title}. "
+                      f"Scegli il {other.name} all'avvio (--device {other.codename}).",
+                      f"The phone is an {model} ({other.title}), but the installer is set to the {dev.title}. "
+                      f"Pick the {other.name} at start (--device {other.codename})."))
+    raise Abort(L(f"Il telefono è un {model}: non è un modello supportato ({dev.title} = {', '.join(dev.models)}).",
+                  f"The phone is an {model}: not a supported model ({dev.title} = {', '.join(dev.models)})."))
+
+
+def check_model_in_recovery(ctx):
+    rc, data = ctx.phone.adb_bytes(["exec-out", f"dd if={BYNAME}/DPP bs=4096 2>/dev/null"], timeout=60)
+    return check_model(ctx, model_from_dpp(bytes(data)) if rc == 0 else None, "DPP")
 
 
 def wait_twrp_commands(ctx):
@@ -524,12 +571,14 @@ def check_update_target(ctx):
     if info:
         ui.info(L(f"Installato: LineageOS «{info['lineage']}», Android SDK «{info['sdk']}», dispositivo «{info['device']}»",
                   f"Installed: LineageOS '{info['lineage']}', Android SDK '{info['sdk']}', device '{info['device']}'"))
-        if info["sdk"] == ROM_SDK and info["lineage"].startswith("18.1") and info["device"] in ROM_DEVICES:
-            ui.ok(L("Sul telefono c'è LineageOS 18.1 per bandit: i dati restano.", "The phone runs LineageOS 18.1 for bandit: data is kept."))
+        dev = ctx.device
+        if info["sdk"] == ROM_SDK and info["lineage"].startswith("18.1") and info["device"] in dev.rom_devices:
+            ui.ok(L(f"Sul telefono c'è LineageOS 18.1 per {dev.codename}: i dati restano.",
+                    f"The phone runs LineageOS 18.1 for {dev.codename}: data is kept."))
             return
-        ui.warn(L("Non è LineageOS 18.1 per bandit. Aggiornare un altro sistema senza formattare i dati di solito finisce "
+        ui.warn(L(f"Non è LineageOS 18.1 per {dev.codename}. Aggiornare un altro sistema senza formattare i dati di solito finisce "
                   "in un riavvio continuo: per quello usa la modalità Pulita.",
-                  "This is not LineageOS 18.1 for bandit. Updating another system without formatting data usually ends "
+                  f"This is not LineageOS 18.1 for {dev.codename}. Updating another system without formatting data usually ends "
                   "in a boot loop: use the Clean mode for that."))
     else:
         ui.warn(L("Non riesco a leggere il sistema installato (partizione system vuota o illeggibile).",

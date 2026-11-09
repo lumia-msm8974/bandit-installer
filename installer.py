@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Android installer for the Nokia Lumia 1520 (bandit). Windows and Linux."""
+"""Android installer for the MSM8974 Nokia Lumias: 1520 (bandit) and 930 (martini). Windows and Linux."""
 import os
 import sys
 

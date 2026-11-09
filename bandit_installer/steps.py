@@ -1,6 +1,6 @@
 """The installer's tasks. Front-end independent: they talk to ctx.ui only.
 
-Boot chain on the Lumia 1520:
+Boot chain on the MSM8974 Lumias (1520, 930):
   UEFI Nokia -> bootmgr -> BCD entry "Android (lk1st)" -> BootShim -> lk1st (fastboot)
 """
 import gzip
@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import time
 
-from . import android, bcd, gpt, images, phase2, sysdeps
+from . import android, bcd, devices, gpt, images, phase2, sysdeps
 from .core import Abort, Cancelled, human_size, stamp
 from .i18n import L
 from .phone import mode_text
@@ -20,6 +20,12 @@ SMALL_PART = 512 * 1024 * 1024
 CHUNK = 4 * 1024 * 1024
 # Partitions fastboot may write. Everything Windows/Qualcomm owns is refused.
 FLASHABLE = ("boot", "recovery", "system", "vendor", "cache", "userdata", "misc", "persist")
+
+
+def current_device(state, opts=None):
+    """Codename in use: --device, else the one chosen last (saved in state.json), else bandit."""
+    c = (opts or {}).get("device") or state.data.get("device") or devices.DEFAULT
+    return c if c in devices.DEVICES else devices.DEFAULT
 
 
 class Ctx:
@@ -33,7 +39,8 @@ class Ctx:
         self.phone = phone
         self.poller = poller
         self.state = state
-        self.kit = kit
+        self.device = devices.get(current_device(state, self.opts))
+        self.kit = kit.for_device(self.device.codename)
         self.ui = ui
         self.disk = None
         for d in ("backups", "logs", "private", "boot"):
@@ -180,11 +187,15 @@ def requirements(ctx):
         out.append((name, False, hint))
     if ctx.system.bcd_backend():
         out.append(("BCD", True, ctx.system.bcd_backend()))
-    twrp = ctx.opts.get("twrp") or os.path.join(ctx.root, "twrp", android.TWRP_NAME)
-    out.append(("TWRP", os.path.isfile(twrp), twrp if os.path.isfile(twrp) else L(
-        f"{android.TWRP_NAME}: l'installer la scarica quando serve", f"{android.TWRP_NAME}: the installer downloads it when needed")))
+    dev = ctx.device
+    if dev.twrp_name:
+        twrp = ctx.opts.get("twrp") or os.path.join(ctx.root, "twrp", dev.twrp_name)
+        out.append(("TWRP", os.path.isfile(twrp), twrp if os.path.isfile(twrp) else L(
+            f"{dev.twrp_name}: l'installer la scarica quando serve", f"{dev.twrp_name}: the installer downloads it when needed")))
+    else:
+        out.append(("TWRP", False, L(f"non ancora rilasciata per il {dev.title}", f"not released yet for the {dev.title}")))
     import glob as _glob
-    roms = [ctx.opts["rom"]] if ctx.opts.get("rom") else sorted(_glob.glob(os.path.join(ctx.root, "rom", android.ROM_GLOB)))
+    roms = [ctx.opts["rom"]] if ctx.opts.get("rom") else sorted(_glob.glob(os.path.join(ctx.root, "rom", dev.rom_glob)))
     out.append(("ROM", bool(roms), ", ".join(os.path.basename(r) for r in roms) if roms else L(
         "metti lo zip e SHA256SUMS nella cartella rom", "put the zip and SHA256SUMS in the rom folder")))
     out.append((L("amministratore", "administrator"), ctx.system.is_admin(),
@@ -294,19 +305,37 @@ def select_disk(ctx, need_unlocked=False):
         d = disks[v]
     g = d.gpt
     unlocked = g.by_name("IS_UNLOCKED") is not None
+    model = disk_model(ctx, d)
     lines = [d.label(),
+             L(f"modello {model or 'non leggibile'} (DPP)", f"model {model or 'unreadable'} (DPP)"),
              L(f"GPT {g.disk_guid}, {len(g.partitions)} partizioni", f"GPT {g.disk_guid}, {len(g.partitions)} partitions"),
              (L("sbloccato con WPinternals (IS_UNLOCKED presente)", "unlocked with WPinternals (IS_UNLOCKED present)")
               if unlocked else L("NON sbloccato: manca IS_UNLOCKED", "NOT unlocked: IS_UNLOCKED missing")),
              L("partizioni Android presenti", "Android partitions present") if g.has_android()
              else L("nessuna partizione Android (Windows intatto)", "no Android partitions (Windows intact)")]
     ui.show(L("Telefono trovato", "Phone found"), lines)
+    android.check_model(ctx, model, "DPP")
     if need_unlocked and not unlocked:
         raise Abort(L("Il bootloader non risulta sbloccato. Senza lo sblocco di WPinternals BootShim non parte: sblocca prima il telefono.",
                       "The bootloader does not look unlocked. Without the WPinternals unlock BootShim cannot start: unlock the phone first."))
     ctx.disk = d
-    ctx.state.set_phone(g.disk_guid, {"size": d.size, "model": d.model, "unlocked": unlocked})
+    ctx.state.set_phone(g.disk_guid, {"size": d.size, "model": d.model, "unlocked": unlocked,
+                                      "device": ctx.device.codename, "rm": model})
     return d
+
+
+def disk_model(ctx, d):
+    """RM code from DPP Nokia/product.dat, read raw from the phone in mass storage, or None."""
+    p = d.gpt.by_name("DPP") if d.gpt else None
+    if p is None or p.size > 64 * 1024 * 1024:
+        return None
+    try:
+        with ctx.system.open_raw(d) as raw:
+            raw.seek(p.offset)
+            data = raw.read(p.size)
+    except OSError:
+        return None
+    return android.model_from_dpp(data)
 
 
 # ---------------------------------------------------------------------------
@@ -368,7 +397,7 @@ def act_backup(ctx, full=None):
                               f"{p.name}: two different reads. Unstable USB cable or port."))
         ui.ok(L("letture identiche", "reads match"))
         if full:
-            c = Compressed(os.path.join(out, "lumia1520-full.img"))
+            c = Compressed(os.path.join(out, f"lumia-{ctx.device.codename}-full.img"))
             ui.info(L(f"Immagine completa ({c.kind})…", f"Full image ({c.kind})…"))
             try:
                 read_range(ctx, raw, 0, d.size, c, L("immagine completa", "full image"))
@@ -479,7 +508,7 @@ def chain_options(ctx, view, for_full=False):
     ui = ctx.ui
     variants = [{"value": e["id"], "title": ctx.kit.title(e),
                  "sub": ctx.kit.note(e) + ("" if ctx.kit.check(e) else L(" — FILE MANCANTE O DIVERSO", " — FILE MISSING OR CHANGED"))}
-                for e in ctx.kit.meta["lk1st"]]
+                for e in ctx.kit.lk1st_entries()]
     has_win = view.windows() is not None and not for_full
     note = L("Il tasto volume su all'accensione apre sempre la modalità flash: è la via di recupero e non viene mai cambiato.",
              "Holding volume up at power-on always opens flash mode: it is the way back and is never changed.")
@@ -537,8 +566,18 @@ def act_chain(ctx, for_full=False):
         elf = images.check_bootshim_elf(lk_path)
         if not elf.ok:
             raise Abort("lk1st: " + "; ".join(elf.errors))
+        if lk.get("entry") and elf.entry != int(lk["entry"], 16):
+            raise Abort(L(f"lk1st {variant}: ingresso 0x{elf.entry:08x}, il kit dice {lk['entry']}",
+                          f"lk1st {variant}: entry 0x{elf.entry:08x}, the kit says {lk['entry']}"))
         ui.ok(L(f"lk1st {variant}: ELF valido per BootShim, ingresso 0x{elf.entry:08x}",
                 f"lk1st {variant}: ELF valid for BootShim, entry 0x{elf.entry:08x}"))
+        if lk.get("status") != "verified":
+            ui.warn(L(f"lk1st {variant} non è mai stato provato su un {ctx.device.name}. Se il telefono non arriva a fastboot: "
+                      "volume su all'accensione apre la modalità flash; da lì WPinternals porta il telefono in mass storage e "
+                      "«Ripristino EFIESP» rimette il backup.",
+                      f"lk1st {variant} has never been tried on a {ctx.device.name}. If the phone does not reach fastboot: "
+                      "volume up at power-on opens flash mode; from there WPinternals switches the phone to mass storage and "
+                      "\"Restore EFIESP\" puts the backup back."))
 
         # backup: files, raw partition image, manifest, info
         bk = ctx.path("backups", f"efiesp-{stamp()}")
@@ -1010,6 +1049,11 @@ def act_restore(ctx):
         raise Cancelled()
     folder, info = backups[choice]
     d = select_disk(ctx)
+    if info.get("disk_guid") and info["disk_guid"].upper() != d.gpt.disk_guid.upper():
+        raise Abort(L(f"Il backup {os.path.basename(folder)} è di un altro telefono (disco {info['disk_guid']}, "
+                      f"collegato {d.gpt.disk_guid}): il suo BCD non vale per questo.",
+                      f"The backup {os.path.basename(folder)} is from another phone (disk {info['disk_guid']}, "
+                      f"connected {d.gpt.disk_guid}): its BCD does not fit this one."))
     part = d.gpt.by_name("EFIESP")
     has_img = os.path.isfile(os.path.join(folder, "efiesp-partition.img"))
     modes = [{"value": "files", "title": L("File (BCD, BootShim, lk1st)", "Files (BCD, BootShim, lk1st)"),
@@ -1039,8 +1083,10 @@ def act_restore(ctx):
         busy = ctx.system.unmount_all(d)
         if busy:
             raise Abort(L(f"Partizioni ancora montate: {', '.join(busy)}", f"Partitions still mounted: {', '.join(busy)}"))
-        node = ctx.system.partition_node(d, part)
-        with open(img, "rb") as src, open(node, "r+b", buffering=0) as dst:
+        # written through the whole disk at the partition offset, the same bytes the
+        # backup read (so it also works where the OS has no node for the partition)
+        with open(img, "rb") as src, ctx.system.open_raw(d, write=True) as dst:
+            dst.seek(part.offset)
             done = 0
             while True:
                 b = src.read(CHUNK)
@@ -1050,7 +1096,13 @@ def act_restore(ctx):
                 done += len(b)
                 ui.progress("EFIESP", done, part.size)
             os.fsync(dst.fileno())
-        ui.ok(L(f"Immagine riscritta su {node}", f"Image written to {node}"))
+        with ctx.system.open_raw(d) as raw:
+            h = hashlib.sha256()
+            read_range(ctx, raw, part.offset, part.size, _Null(), L("controllo EFIESP", "EFIESP check"), (h,))
+        if h.hexdigest() != images.sha256_file(img):
+            raise Abort(L("EFIESP riletta non corrisponde all'immagine: riprova il ripristino.",
+                          "EFIESP read back does not match the image: run the restore again."))
+        ui.ok(L(f"Immagine riscritta su EFIESP di {d.ident} e riletta", f"Image written to EFIESP of {d.ident} and read back"))
     else:
         with ctx.system.mounted(d, part, "vfat", write=True) as root:
             src_root = os.path.join(folder, "EFIESP")
@@ -1155,13 +1207,28 @@ MODES = {
 }
 
 
-def mode_options():
-    """Menu entries for the three modes."""
+def mode_ready(key, device):
+    return bool(MODES[key]["ready"] and device.ready.get(key))
+
+
+def mode_options(device):
+    """Menu entries for the three modes, for this phone."""
     out = []
     for key, m in MODES.items():
         sub = L(f"prima: {m['before'][0]}. Dati: {m['data'][0]}.", f"before: {m['before'][1]}. Data: {m['data'][1]}.")
-        out.append({"value": key, "title": L(*m["title"]), "sub": sub, "disabled": not m["ready"]})
+        if not mode_ready(key, device):
+            sub += L(f" Non ancora disponibile per il {device.name}.", f" Not available yet for the {device.name}.")
+        out.append({"value": key, "title": L(*m["title"]), "sub": sub, "disabled": not mode_ready(key, device)})
     return out
+
+
+def _need_mode(ctx, key):
+    """Modes not ready for this phone stop before touching anything."""
+    if not mode_ready(key, ctx.device):
+        n = L(*ctx.device.notes) if any(ctx.device.notes) else ""
+        raise Abort(L(f"La modalità {L(*MODES[key]['title'])} non è ancora disponibile per il {ctx.device.title}. ",
+                      f"The {L(*MODES[key]['title'])} mode is not available yet for the {ctx.device.title}. ") + n
+                    + L(" I singoli passi sono negli strumenti avanzati.", " The single steps are in the advanced tools."))
 
 
 def _intro(ctx, key, extra=()):
@@ -1242,6 +1309,7 @@ def act_full(ctx):
     ui = ctx.ui
     st = ctx.state
     ui.step(L("Installazione completa", "Full install"))
+    _need_mode(ctx, "full")
     _intro(ctx, "full", [
         L("Riprende da dove si era fermata: i passi fatti sono salvati in work/state.json.",
           "It resumes where it stopped: the steps done are saved in work/state.json."),
@@ -1293,6 +1361,7 @@ def _confirm_clean(ctx):
 
 def act_clean(ctx):
     ctx.ui.step(L("Installazione pulita", "Clean install"))
+    _need_mode(ctx, "clean")
     _intro(ctx, "clean")
     _need_tools(ctx)
     _resolve_files(ctx)
@@ -1301,6 +1370,7 @@ def act_clean(ctx):
 
 def act_update(ctx):
     ctx.ui.step(L("Aggiornamento", "Update"))
+    _need_mode(ctx, "update")
     _intro(ctx, "update")
     _need_tools(ctx)
     _resolve_files(ctx)

@@ -180,6 +180,8 @@ class State:
 # ---------------------------------------------------------------------------
 
 class Kit:
+    """payload/payload.json: BootShim (shared) and, per phone, lk1st builds and test kernels."""
+
     def __init__(self, payload_dir):
         self.dir = payload_dir
         with open(os.path.join(payload_dir, "payload.json"), encoding="utf-8") as f:
@@ -206,20 +208,34 @@ class Kit:
     def bootshim(self):
         return self.meta["bootshim"]
 
+    def for_device(self, codename):
+        return DeviceKit(self, codename)
+
+
+class DeviceKit:
+    """The kit as one phone sees it: the shared BootShim and that phone's lk1st and kernels."""
+
+    def __init__(self, kit, codename):
+        self.kit = kit
+        self.codename = codename
+        self.section = kit.meta.get("devices", {}).get(codename, {})
+        self.path, self.check, self.title, self.note, self.bootshim = kit.path, kit.check, kit.title, kit.note, kit.bootshim
+
+    def lk1st_entries(self):
+        return list(self.section.get("lk1st", []))
+
     def lk1st(self, ident=None):
-        for e in self.meta["lk1st"]:
+        for e in self.lk1st_entries():
             if ident in (None, e["id"]):
                 return e
         return None
 
     def boot_images(self):
-        return list(self.meta.get("boot", []))
+        return list(self.section.get("boot", []))
 
     def status_lines(self):
-        out = []
-        b = self.bootshim()
-        out.append(("BootShim", self.check(b)))
-        for e in self.meta["lk1st"]:
+        out = [("BootShim", self.check(self.bootshim()))]
+        for e in self.lk1st_entries():
             out.append((f"lk1st {e['id']}", self.check(e)))
         for e in self.boot_images():
             out.append((e["id"].upper(), self.check(e)))

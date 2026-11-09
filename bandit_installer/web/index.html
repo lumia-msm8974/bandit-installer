@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lumia 1520 Android Installer</title>
+<title>Lumia Android Installer</title>
 <style>
 :root {
   --accent: #0078d7;
@@ -184,6 +184,9 @@ h2 { font-size: 20px; font-weight: 400; color: var(--fg); margin: 0 0 12px; }
 .radio.on .dotr { border-color: var(--accent); }
 .radio.on .dotr::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--fg); }
 .radio:hover .dotr { border-color: #fff; }
+.devpick { margin: 0 0 18px; }
+.devpick small { opacity: .7; }
+.radio.busy { cursor: default; opacity: .6; }
 .swatches { display: grid; grid-template-columns: repeat(7, 48px); gap: 4px; }
 .swatch { width: 48px; height: 48px; cursor: pointer; border: 2px solid transparent; position: relative; }
 .swatch:hover { border-color: rgba(255,255,255,.6); }
@@ -244,7 +247,7 @@ input[type=text]:focus, input[type=number]:focus { border-color: var(--accent); 
 <div id="app">
   <nav>
     <div class="brand"><span class="logo" data-icon="logo"></span>
-      <div class="name">Lumia 1520 <small data-t="appsub">Android installer</small></div></div>
+      <div class="name"><span id="devname">Lumia</span> <small data-t="appsub">Android installer</small></div></div>
     <div class="phonecard" id="phonecard"></div>
     <div class="navlist">
       <div class="navitem" data-nav="install"><span data-icon="wizard"></span><span data-t="n_install">Install</span></div>
@@ -327,6 +330,8 @@ const T = {
     s_phase2: "Android partitions", s_phase2_s: "provisioning backup, Windows erased, new table, modem and MAC addresses",
     s_rom: "ROM", s_rom_s: "TWRP in RAM, format data, adb sideload, log check",
     next: "next", done_on: "done", req: "Requirements", kit: "Kit files",
+    device: "Phone", device_s: "The installer checks the model on the phone (DPP) before writing anything.",
+    locked_dev: "Not available yet for this phone.",
     tools_t: "Advanced tools", tools_l: "The single steps, for development and recovery. The full install runs the install steps in order, then installs the ROM.",
     g_steps: "Install steps", g_test: "Tests with lk1st", g_maint: "Maintenance",
     backup: "Backup", backup_s: "GPT, small partitions and full image",
@@ -367,6 +372,8 @@ const T = {
     s_phase2: "Partizioni Android", s_phase2_s: "backup del provisioning, Windows cancellato, nuova tabella, modem e indirizzi MAC",
     s_rom: "ROM", s_rom_s: "TWRP in RAM, formattazione dei dati, adb sideload, controllo del log",
     next: "prossimo", done_on: "fatto", req: "Requisiti", kit: "File del kit",
+    device: "Telefono", device_s: "L'installer controlla il modello sul telefono (DPP) prima di scrivere qualsiasi cosa.",
+    locked_dev: "Non ancora disponibile per questo telefono.",
     tools_t: "Strumenti avanzati", tools_l: "I singoli passi, per sviluppo e ripristino. L'installazione completa esegue in ordine i passi dell'installazione, poi installa la ROM.",
     g_steps: "Passi dell'installazione", g_test: "Prove con lk1st", g_maint: "Manutenzione",
     backup: "Backup", backup_s: "GPT, partizioni piccole e immagine completa",
@@ -397,7 +404,7 @@ const TOOLS = [
   ["g_maint", [["restore", "restore"], ["diag", "diag"], ["tools", "tools"]]],
 ];
 
-let S = { lang: "en", phone: {}, done: {}, requirements: [], kit: [], modes: {} };
+let S = { lang: "en", phone: {}, done: {}, requirements: [], kit: [], modes: {}, device: "", devices: [] };
 let lastEvent = 0, current = "install", taskName = null, polling = false, prompt = null, rendered = {};
 const t = (k) => (T[S.lang] || T.en)[k] ?? T.en[k] ?? k;
 const $ = (id) => document.getElementById(id);
@@ -432,7 +439,7 @@ function render(force) {
   renderNav();
   const fn = { install: renderInstall, tools: renderTools, settings: renderSettings }[current];
   if (!fn) return;
-  const key = JSON.stringify([current, S.lang, S.done, S.running, S.requirements, S.kit, S.modes, S.admin]);
+  const key = JSON.stringify([current, S.lang, S.done, S.running, S.requirements, S.kit, S.modes, S.admin, S.device]);
   if (!force && rendered[current] === key) return;
   rendered[current] = key;
   fn();
@@ -450,7 +457,10 @@ function renderNav() {
   const pulse = nt.querySelector(".pulse");
   if (S.running && !pulse) nt.insertAdjacentHTML("beforeend", '<i class="pulse"></i>');
   if (!S.running && pulse) pulse.remove();
-  $("navfoot").textContent = `bandit-installer ${S.version || ""} · ${S.platform || ""}`;
+  const dev = (S.devices || []).find((d) => d.codename === S.device);
+  $("devname").textContent = dev ? dev.name : "Lumia";
+  document.title = (dev ? dev.name : "Lumia") + " Android Installer";
+  $("navfoot").textContent = `lumia-installer ${S.version || ""} · ${S.platform || ""}`;
 }
 $("phonecard").onclick = () => startTask("diag");
 
@@ -458,7 +468,12 @@ $("phonecard").onclick = () => startTask("diag");
 function renderInstall() {
   const doneCount = STEPS.filter((k) => S.done[k]).length;
   const next = STEPS.find((k) => !S.done[k]);
-  let h = `<div class="wrap"><h1>${t("install_t")}</h1><p class="lead">${t("install_l")}</p><div class="modes">`;
+  let h = `<div class="wrap"><h1>${t("install_t")}</h1><p class="lead">${t("install_l")}</p>`;
+  h += `<div class="setsec devpick"><h2>${t("device")}</h2>`;
+  for (const d of S.devices || [])
+    h += `<div class="radio ${S.device === d.codename ? "on" : ""} ${S.running ? "busy" : ""}" data-device="${esc(d.codename)}"><span class="dotr"></span>
+      <div>${esc(d.name)} <small>(${esc(d.codename)}, ${esc(d.models.join(", "))})</small>${d.note ? `<div class="fsub">${esc(d.note)}</div>` : ""}</div></div>`;
+  h += `<div class="fsub" style="margin-top:6px">${t("device_s")}</div></div><div class="modes">`;
   for (const [key, icon] of MODES) {
     const ready = S.modes ? S.modes[key] !== false : true;
     const label = key === "full" ? (doneCount === 0 ? t("start") : doneCount < STEPS.length ? t("resume") : t("again")) : t("start");
@@ -468,7 +483,7 @@ function renderInstall() {
       <dl><dt>${t("before")}</dt><dd>${t(key + "_before")}</dd><dt>${t("does")}</dt><dd>${t(key + "_does")}</dd>
         <dt>${t("data")}</dt><dd>${t(key + "_data")}</dd></dl>
       ${ready ? `<button class="btn primary" data-run="${key}" ${S.running ? `disabled title="${t("busy")}"` : ""}>${label}</button>`
-              : `<div class="lockmsg">${svg("lock")}<span>${t("locked")}</span></div>`}</div>`;
+              : `<div class="lockmsg">${svg("lock")}<span>${t("locked_dev")}</span></div>`}</div>`;
   }
   h += `</div><div class="cols"><div class="card"><h2>${t("progress_t")}</h2><ol class="steps">`;
   STEPS.forEach((k, i) => {
@@ -484,6 +499,10 @@ function renderInstall() {
   h += `</div></div></div></div>`;
   $("install").innerHTML = h;
   $("install").querySelectorAll("[data-run]").forEach((b) => (b.onclick = () => startTask(b.dataset.run)));
+  $("install").querySelectorAll("[data-device]").forEach((el) => (el.onclick = () => {
+    if (S.running || el.dataset.device === S.device) return;
+    api("/api/device", { device: el.dataset.device }).then(refreshState).then(() => render(true));
+  }));
 }
 
 // ---------------------------------------------------------------- tools page
@@ -514,9 +533,9 @@ function renderSettings() {
   h += `</div><div class="setsec"><h2>${t("accent")}</h2><div class="swatches">` +
     ACCENTS.map((c) => `<div class="swatch ${c === cur ? "on" : ""}" data-accent="${c}" style="background:${c}"></div>`).join("") + `</div></div>`;
   h += `<div class="setsec"><h2>${t("work")}</h2><div class="path">${esc(S.work)}</div><div class="fsub" style="margin-top:6px">${t("work_s")}</div></div>`;
-  h += `<div class="setsec"><h2>${t("about")}</h2><div class="about"><b>bandit-installer ${esc(S.version)}</b> · ${esc(S.platform)}<br>
+  h += `<div class="setsec"><h2>${t("about")}</h2><div class="about"><b>lumia-installer ${esc(S.version)}</b> · ${esc(S.platform)}<br>
     BootShim: imbushuo (boot-shim) · lk2nd/lk1st: msm8916-mainline, port KorelisLabs · WPinternals: René Lergner · TWRP: TeamWin ·
-    Android4Lumia950: djokcho, EpicLPer, j0sh1x, sonic011gamer · Markynose · LineageOS</div></div>`;
+    Android4Lumia950: djokcho, EpicLPer, j0sh1x, sonic011gamer · Markynose (lumia930-linux) · Mainline4Lumia · LineageOS</div></div>`;
   h += `<div class="setsec"><button class="btn" data-quit>${t("quit")}</button><div class="fsub" style="margin-top:6px">${t("quit_s")}</div></div></div>`;
   $("settings").innerHTML = h;
   $("settings").querySelectorAll("[data-lang]").forEach((el) => (el.onclick = () => setLang(el.dataset.lang)));

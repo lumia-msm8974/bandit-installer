@@ -184,7 +184,11 @@ def read_efiesp(r, names, kit):
         raise Phase2Error(L("lk1st (emmc_appsboot.mbn) non è su EFIESP: installa prima la catena di avvio.",
                             "lk1st (emmc_appsboot.mbn) is not on EFIESP: install the boot chain first."))
     digest = sha(lk)
-    known = {e["sha256"]: e["id"] for e in kit.meta.get("lk1st", [])}
+    known = {e["sha256"]: e["id"] for e in kit.lk1st_entries()}
+    for code, sec in kit.kit.meta.get("devices", {}).items():
+        if code != kit.codename and any(e["sha256"] == digest for e in sec.get("lk1st", [])):
+            raise Phase2Error(L(f"Su EFIESP c'è il lk1st di un altro telefono ({code}): reinstalla la catena di avvio con il telefono giusto.",
+                                f"EFIESP holds the lk1st of another phone ({code}): install the boot chain again for the right phone."))
     if digest in known:
         ui.ok(L(f"lk1st su EFIESP = kit {known[digest]}", f"lk1st on EFIESP = kit {known[digest]}"))
     else:

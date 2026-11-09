@@ -17,13 +17,13 @@ import time
 import traceback
 import urllib.parse
 
-from . import steps, sysdeps
+from . import devices, steps, sysdeps
 from .core import UI, Abort, Cancelled
 from .i18n import L, get_lang, set_lang
 from .phone import mode_text
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 
 class WebUI(UI):
@@ -199,6 +199,7 @@ class App:
         done = {}
         for k, v in (self.state.phone().get("steps") or {}).items():
             done[k] = v.get("time", "")
+        cur = devices.get(steps.current_device(self.state))
         return {
             "version": VERSION,
             "lang": get_lang(),
@@ -207,9 +208,12 @@ class App:
             "phone": {"mode": snap.mode, "text": mode_text(snap.mode), "detail": snap.detail,
                       "problem": snap.problem, "when": snap.when},
             "requirements": self.reqs or [],
-            "kit": [{"name": n, "ok": ok} for n, ok in self.kit.status_lines()],
+            "kit": [{"name": n, "ok": ok} for n, ok in self.kit.for_device(cur.codename).status_lines()],
             "done": done,
-            "modes": {k: m["ready"] for k, m in steps.MODES.items()},
+            "modes": {k: steps.mode_ready(k, cur) for k in steps.MODES},
+            "device": cur.codename,
+            "devices": [{"codename": d.codename, "name": d.name, "models": list(d.models),
+                         "note": L(*d.notes) if any(d.notes) else ""} for d in devices.DEVICES.values()],
             "accent": self.state.data.get("accent"),
             "running": self.task_name if self.running() else None,
             "prompt": self.ui.prompt,
@@ -222,7 +226,7 @@ class App:
         app = self
 
         class Handler(http.server.BaseHTTPRequestHandler):
-            server_version = "bandit-installer"
+            server_version = "lumia-installer"
 
             def log_message(self, *a):
                 pass
@@ -292,6 +296,15 @@ class App:
                     app.state.save()
                     app.reqs = None
                     self._json({"ok": True})
+                elif p == "/api/device":
+                    c = str(data.get("device", ""))
+                    if c in devices.DEVICES and not app.running():
+                        app.state.data["device"] = c
+                        app.state.save()
+                        app.reqs = None
+                        self._json({"ok": True})
+                    else:
+                        self._json({"ok": False})
                 elif p == "/api/accent":
                     a = str(data.get("accent", ""))
                     if re.fullmatch(r"#[0-9a-fA-F]{6}", a):

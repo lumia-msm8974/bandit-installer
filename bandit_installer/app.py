@@ -3,7 +3,7 @@ import argparse
 import os
 import sys
 
-from . import i18n, steps, sysdeps
+from . import devices, i18n, steps, sysdeps
 from .core import UI, Abort, Cancelled, Kit, State, stamp
 from .i18n import L
 from .phone import Phone, Poller
@@ -79,22 +79,42 @@ class TextUI(UI):
         return out
 
 
+def device_options(current):
+    out = []
+    for d in devices.DEVICES.values():
+        sub = ", ".join(d.models) + (" — " + L(*d.notes) if any(d.notes) else "")
+        out.append({"value": d.codename, "title": d.title + ("  ✓" if d.codename == current else ""), "sub": sub})
+    return out
+
+
+def choose_device_text(ui, state):
+    cur = steps.current_device(state)
+    v = ui.choose(L("Quale telefono?", "Which phone?"),
+                  L("L'installer controlla comunque il modello sul telefono (DPP) prima di scrivere.",
+                    "The installer still checks the model on the phone (DPP) before writing."), device_options(cur))
+    if v:
+        state.data["device"] = v
+        state.save()
+
+
 def _exe(path):
     return os.path.abspath(os.path.expanduser(path)) if path else None
 
 
 def parse_args(argv):
-    ap = argparse.ArgumentParser(prog="installer", description="Android installer for the Nokia Lumia 1520 (bandit)")
+    ap = argparse.ArgumentParser(prog="installer", description="Android installer for the Nokia Lumia 1520 (bandit) and 930 (martini)")
     ap.add_argument("--lang", choices=("en", "it"), help="interface language (default: English, or the one chosen in the settings)")
+    ap.add_argument("--device", choices=sorted(devices.DEVICES),
+                    help="phone: bandit (Lumia 1520) or martini (Lumia 930); default: the last one chosen, else bandit")
     ap.add_argument("--work", help="folder for backups, logs and progress (default: work/ next to the installer)")
     ap.add_argument("--text", action="store_true", help="terminal interface instead of the app window")
     ap.add_argument("--mode", choices=sorted(steps.MODES), help="start this install mode without the menu (full, clean, update)")
     ap.add_argument("--action", choices=sorted(steps.ACTIONS), help="with --text: run one task and exit")
     ap.add_argument("--no-elevate", action="store_true", help="do not ask for administrator/root rights")
     ap.add_argument("--no-browser", action="store_true", help="only print the address of the app window")
-    ap.add_argument("--rom", help="ROM zip (default: the lineage-18.1-*-bandit.zip in rom/)")
+    ap.add_argument("--rom", help="ROM zip (default: the lineage-18.1-*-<codename>.zip in rom/)")
     ap.add_argument("--rom-sha256", help="expected SHA-256 of the ROM zip (default: SHA256SUMS next to it)")
-    ap.add_argument("--twrp", help="TWRP image (default: twrp/%s); its SHA-256 must be in checksums.sha256" % "twrp-3.7.0_9-1-bandit.img")
+    ap.add_argument("--twrp", help="TWRP image (default: the phone's one in twrp/); its SHA-256 must be in checksums.sha256")
     ap.add_argument("--phase2-recovery", help="recovery image for phase 2 instead of the TWRP (advanced)")
     ap.add_argument("--adb", help="adb executable to use")
     ap.add_argument("--fastboot", help="fastboot executable to use")
@@ -135,6 +155,9 @@ def _run(args, root, system):
     state = State(os.path.join(work, "state.json"))
     if not args.lang and state.data.get("lang") in ("en", "it"):
         i18n.set_lang(state.data["lang"])
+    if args.device:
+        state.data["device"] = args.device
+        state.save()
     kit = Kit(os.path.join(root, "payload"))
     log_target = {}
     phone = Phone(system, lambda t: log_target["ui"].detail(t) if "ui" in log_target else None,
@@ -158,12 +181,23 @@ def _run(args, root, system):
                      "restore": L("Ripristino EFIESP", "Restore EFIESP"), "diag": L("Diagnostica", "Diagnostics"),
                      "tools": L("Strumenti", "Tools")}
             once = args.mode or args.action
+            if not once and not args.device:
+                choose_device_text(ui, state)
+                ctx = ctx_factory(ui)
             while True:
                 action = once
                 if not action:
-                    action = ui.choose("Lumia 1520 — Android", L(f"Stato: {phone.snapshot().text()}", f"Mode: {phone.snapshot().text()}"),
-                                       steps.mode_options() + [{"value": "advanced", "title": L("Strumenti avanzati", "Advanced tools"),
-                                                                "sub": L("i singoli passi, prove con lk1st, ripristino", "single steps, lk1st tests, restore")}])
+                    dev = ctx.device
+                    action = ui.choose(f"{dev.name} — Android", L(f"Stato: {phone.snapshot().text()}", f"Mode: {phone.snapshot().text()}"),
+                                       steps.mode_options(dev) + [
+                                           {"value": "advanced", "title": L("Strumenti avanzati", "Advanced tools"),
+                                            "sub": L("i singoli passi, prove con lk1st, ripristino", "single steps, lk1st tests, restore")},
+                                           {"value": "device", "title": L("Cambia telefono", "Change phone"),
+                                            "sub": dev.title}])
+                    if action == "device":
+                        choose_device_text(ui, state)
+                        ctx = ctx_factory(ui)
+                        continue
                     if action == "advanced":
                         action = ui.choose(L("Strumenti avanzati", "Advanced tools"), "",
                                            [{"value": k, "title": v} for k, v in names.items()])

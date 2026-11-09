@@ -53,6 +53,16 @@ LUMIA1520 = """\
 64 1 1F9FEBA9-D568-4516-B6E3-1B29135A12E1 IS_UNLOCKED -
 """
 
+# Lumia 930 (martini): no GPT of a real 930 has been read yet. Same Spec B set as the
+# 1520; MainOS is shorter because Data starts at LBA 5308416 on the 32 GB 930 that
+# Markynose audited (lumia930-linux, alpine/README.md). Replace with the real table
+# once a 930 is backed up.
+LUMIA930 = LUMIA1520.replace("262144 5155616 EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 MainOS -",
+                             "262144 5046272 EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 MainOS -").replace(
+    "5423104 55648223 EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 Data 63",
+    "5308416 55762911 EBD0A0A2-B9E5-4433-87C0-68B6B72699C7 Data 63")
+TABLES = {"bandit": LUMIA1520, "martini": LUMIA930}
+
 PARTITION_SH = r"""
 export LC_ALL=C
 D="$1"
@@ -68,9 +78,9 @@ done
 """
 
 
-def sfdisk_script():
+def sfdisk_script(table=LUMIA1520):
     lines = ["label: gpt", "first-lba: 34", f"last-lba: {DISK_SECTORS - 34}", ""]
-    for row in LUMIA1520.splitlines():
+    for row in table.splitlines():
         start, size, typ, name, attrs = row.split()
         a = ', attrs="GUID:63"' if attrs == "63" else ""
         lines.append(f'start={start}, size={size}, type={typ}, name="{name}"{a}')
@@ -86,19 +96,21 @@ def entries(path):
 
 @unittest.skipUnless(shutil.which("sfdisk"), "sfdisk needed to build the fake disk")
 class LayoutTest(unittest.TestCase):
+    TABLE = LUMIA1520
+
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp(prefix="bandit-layout-")
-        cls.disk = cls.make_disk("lumia1520.img")
+        cls.tmp = tempfile.mkdtemp(prefix="lumia-layout-")
+        cls.disk = cls.make_disk("lumia.img")
 
     @classmethod
     def make_disk(cls, name):
-        """A sparse image with the 1520 table (copies would not stay sparse)."""
+        """A sparse image with the phone's table (copies would not stay sparse)."""
         path = os.path.join(cls.tmp, name)
         with open(path, "wb") as f:
             f.truncate(DISK_SECTORS * gpt.SECTOR)
         subprocess.run(["sfdisk", "-q", "--no-reread", "--no-tell-kernel", path],
-                       input=sfdisk_script(), text=True, check=True, env=dict(os.environ, LC_ALL="C"))
+                       input=sfdisk_script(cls.TABLE), text=True, check=True, env=dict(os.environ, LC_ALL="C"))
         return path
 
     @classmethod
@@ -161,6 +173,17 @@ class LayoutTest(unittest.TestCase):
         backup = bytearray(plan.after.backup())
         backup[100] ^= 0xFF
         self.assertTrue(layout.verify(plan, backup=bytes(backup)))
+
+
+class MartiniLayoutTest(LayoutTest):
+    """Same checks on the Lumia 930 table (synthetic until a real 930 GPT is read)."""
+    TABLE = LUMIA930
+
+    def test_userdata_does_not_depend_on_mainos(self):
+        plan = self.plan()
+        first, last = plan.created[-1][2], plan.created[-1][3]
+        self.assertEqual(plan.created[-1][1], "userdata")
+        self.assertEqual(last - first + 1, 25913 * 2048)   # same layout as the 1520 from EFIESP on
 
 
 if __name__ == "__main__":
