@@ -161,8 +161,17 @@ class BcdView:
         return None, None
 
     def windows(self):
-        hits = self.find_by_path("mobilestartup.efi")
-        return hits[0] if hits else None
+        """The entry that starts Windows: the default the phone booted before (winload.efi on the
+        1520's Windows Phone 8.1 BCD, Mobile Startup on Windows 10 Mobile), else Mobile Startup,
+        else the Windows loader."""
+        d = self.default()
+        if d in self.objects and self.path(d).lower().endswith(("winload.efi", "mobilestartup.efi")):
+            return d
+        for want in ("mobilestartup.efi", "winload.efi"):
+            hits = self.find_by_path(want)
+            if hits:
+                return hits[0]
+        return None
 
     def bootshim_entries(self):
         return self.find_by_path("bootshim.efi")
