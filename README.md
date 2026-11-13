@@ -146,8 +146,9 @@ the phone in its OTA metadata; it contains the phone's firmware.
 - **Android Platform Tools** (`fastboot`, `adb`): the installer can download Google's copy into `tools/`.
 - Windows: the [Google USB driver](https://developer.android.com/studio/run/win-usb) for fastboot and
   adb. The BCD is changed with Windows' own `bcdedit`.
-- Linux: `python3-hivex` for the BCD (Arch `hivex`, Debian/Ubuntu/Fedora `python3-hivex`),
-  `util-linux`, `ntfs3` or `ntfs-3g` for the firmware step.
+- Linux: `util-linux`, `ntfs3` or `ntfs-3g` for the firmware step. The BCD is written by the
+  installer itself (`regfw.py`), so no hivex package is needed; `LUMIA_BCD_WRITER=hivex` uses
+  `python3-hivex` instead, if installed.
 - For the app window: Edge or Chrome on Windows, Chromium/Chrome/Brave/Edge on Linux (otherwise the
   default browser opens a tab).
 
@@ -273,6 +274,7 @@ The single steps are also available on their own, for development and recovery:
 | Backup, firmware, boot chain, EFIESP restore | simulated phone only (`tests/test_mass.py`, disk image through mtools) |
 | Lumia 930 partition table | the GPT of the official RM-1045 FFU (Data grown to a 32 GB eMMC, IS_UNLOCKED added); phase 2 layout and checks pass on it. No `BACKUP_BS_NV` on the 930: skipped |
 | Linux BCD writer (hivex) | output byte-identical to the kit script used on the phone |
+| Linux BCD writer (pure Python, default) | same keys and values as the hivex writer on a real 1520 BCD, for every plan; hivex reads its output back; **not yet used on a phone** |
 | Windows BCD writer (bcdedit), Windows disk/USB detection | written, **not yet run on Windows** |
 
 ## Tests
@@ -289,10 +291,13 @@ Nothing talks to a real device. The tests need `sfdisk`, `mkfs.fat` and mtools.
   `tests/fake/fastboot`) whose eMMC is a sparse disk image with the 1520's partition table.
 - `tests/test_mass.py` runs the mass storage tasks (backup, firmware, boot chain, EFIESP restore) with
   `--test` on a disk image (`LUMIA_TEST_DISK`, read and written with mtools, no root): model checks,
-  the wrong phone, the Lumia Icon, locked modes on the 930. The boot chain test needs `python3-hivex`
-  and a real BCD (`LUMIA_TEST_BCD=<EFI/Microsoft/Boot/BCD of a phone backup>`); none is shipped.
+  the wrong phone, the Lumia Icon, locked modes on the 930. The boot chain test needs a real BCD
+  (`LUMIA_TEST_BCD=<EFI/Microsoft/Boot/BCD of a phone backup>`); none is shipped.
+- `tests/test_bcd.py` checks the plans and both Linux writers on that BCD; with `python3-hivex` it also
+  compares the two writers key by key and has hivex read the pure Python output.
 
-`tests/docker/run-tests.sh` runs everything in a Debian container that has `python3-hivex`:
+`tests/docker/run-tests.sh` runs everything in a Debian container that has `python3-hivex`, for the
+comparison tests:
 
 ```bash
 LUMIA_TEST_BCD=/path/to/BCD tests/docker/run-tests.sh -v
@@ -317,8 +322,9 @@ bandit_installer/
   phase2.py    Android partitions: provisioning backup, GPT, format, provisioning
   layout.py    the Android partition table (as partition.sh leaves it) and its check
   fat.py       FAT12/16 reader and formatter (DPP, EFIESP, aboot, modem)
-  bcd.py       BCD plan, writers (hivex, bcdedit) and checks
+  bcd.py       BCD plan, writers (pure Python, hivex, bcdedit) and checks
   regf.py      read-only registry hive parser
+  regfw.py     registry hive writer in pure Python (the Linux BCD writer)
   gpt.py       GPT parser (the phone's partitions are always read from its GPT)
   images.py    BootShim ELF checks, boot image header, PIL firmware split
   phone.py     phone mode from USB ids, fastboot and adb
@@ -343,6 +349,11 @@ tests/         layout, flow and mass storage tests, fake adb/fastboot, Docker ru
   chain, lk1st device tree and load address, and the PIL split format reproduced in `images.py`.
 - **René Lergner (HeathCliff)**: [WPinternals](https://github.com/ReneLergner/WPinternals), unlock and
   mass storage mode.
+- **Richard W.M. Jones (Red Hat)**: [hivex](https://libguestfs.org/hivex.3.html), the first Linux BCD
+  writer, whose way of changing a hive (`regfw.py` follows it) and output the tests compare against.
+- **Joachim Metz**: the regf format notes of [libregf](https://github.com/libyal/libregf)
+  (`documentation/Windows NT Registry File (REGF) format.asciidoc`), the reference for `regf.py` and
+  `regfw.py`.
 - **TeamWin**: [TWRP](https://twrp.me), the recovery the installer starts in RAM (bandit build from
   [android_device_nokia_bandit](https://github.com/lumia-msm8974/android_device_nokia_bandit/tree/twrp-9.0)).
 - **Markynose (Mark Buchok)**: [lumia930-linux](https://github.com/Markynose/lumia930-linux), the

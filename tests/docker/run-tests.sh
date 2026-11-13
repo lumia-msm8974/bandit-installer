@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Runs the whole test suite in a Debian container with python3-hivex.
+# Runs the whole test suite in a Debian container with python3-hivex, so the pure Python
+# BCD writer is also compared with hivex.
 #   tests/docker/run-tests.sh [unittest arguments]
 # LUMIA_TEST_BCD=<phone BCD> also runs the boot chain tests (the file is mounted
 # read-only, never copied into the repository).

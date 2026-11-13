@@ -6,7 +6,7 @@ The installer runs with --test and LUMIA_TEST_DISK pointing at a sparse image wi
 phone's partition table (sysdeps.ImageSystem): FAT partitions are read and written
 with mtools, MainOS (NTFS) is a folder given in LUMIA_TEST_DIRS. Nothing needs root.
 
-The boot chain test needs a real BCD hive and python3-hivex. No BCD is shipped with
+The boot chain test needs a real BCD hive. No BCD is shipped with
 the tests (it comes from a phone): set LUMIA_TEST_BCD to the EFI/Microsoft/Boot/BCD of
 a phone's EFIESP backup to run it.
 
@@ -300,15 +300,12 @@ class MassStorageTest(unittest.TestCase):
     def test_chain_refuses_fake_bcd(self):
         if os.environ.get("LUMIA_TEST_BCD"):
             self.skipTest("a real BCD is in use")
-        if not bcd.hivex_available():
-            self.skipTest("python3-hivex not installed")
         before = read_part(self.disks["martini"], "EFIESP")
         rc, out = self.run_installer("chain-fake-bcd", "chain", "martini", device="martini")
         self.assertEqual(rc, 1, out)
         self.assertEqual(read_part(self.img, "EFIESP"), before)
 
-    @unittest.skipUnless(os.environ.get("LUMIA_TEST_BCD") and bcd.hivex_available(),
-                         "set LUMIA_TEST_BCD to a phone's BCD and install python3-hivex")
+    @unittest.skipUnless(os.environ.get("LUMIA_TEST_BCD"), "set LUMIA_TEST_BCD to a phone's BCD")
     def test_chain_and_restore_martini(self):
         before = read_part(self.disks["martini"], "EFIESP")
         efiesp = rows(TABLES["martini"])["EFIESP"][0] * 512

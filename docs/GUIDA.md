@@ -113,13 +113,13 @@ chiaro.
 
 ### Linux
 
-Installa Python 3 (3.8 o successivo), il modulo Python di hivex (per modificare il BCD), util-linux e
-il supporto NTFS (per il passo del firmware):
+Installa Python 3 (3.8 o successivo), util-linux e il supporto NTFS (per il passo del firmware). Il BCD
+lo modifica l'installer da solo, non serve un pacchetto in più:
 
 ```bash
-sudo pacman -S python hivex util-linux ntfs-3g android-tools              # Arch
-sudo apt install python3 python3-hivex util-linux ntfs-3g adb fastboot      # Debian, Ubuntu
-sudo dnf install python3 python3-hivex util-linux ntfs-3g android-tools   # Fedora
+sudo pacman -S python util-linux ntfs-3g android-tools              # Arch
+sudo apt install python3 util-linux ntfs-3g adb fastboot      # Debian, Ubuntu
+sudo dnf install python3 util-linux ntfs-3g android-tools   # Fedora
 ```
 
 Per la finestra app serve Chromium, Chrome, Brave o Edge; altrimenti si apre una scheda del browser
@@ -346,7 +346,6 @@ del provisioning, log) in un posto sicuro.
 | Il telefono finisce in **Qualcomm 9008** | Tieni premuti accensione + volume giù per 10 s, poi volume su all'accensione (modalità flash) e chiedi aiuto con i log. |
 | **Due letture diverse** durante il backup | Cavo o porta instabili: cambiali e rifai il backup. |
 | **Partizioni ancora montate** (mass storage) | Chiudi le finestre di Esplora risorse/file manager che mostrano le unità del telefono. |
-| Linux: manca **hivex** | Installa il pacchetto della [sezione 4](#linux). |
 
 ### Riavvio continuo
 

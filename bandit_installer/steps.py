@@ -608,8 +608,8 @@ def act_chain(ctx, for_full=False):
         # new BCD, written next to the backup and checked before it goes to the phone
         plan = bcd.Plan(before, opts)
         new_bcd = os.path.join(bk, "BCD.new")
-        if backend == "hivex":
-            bcd.write_hivex(lay["bcd"], new_bcd, plan)
+        if backend in ("python", "hivex"):
+            bcd.write_hive(lay["bcd"], new_bcd, plan, engine=backend)
         else:
             bcd.write_bcdedit(lay["bcd"], new_bcd, plan, log=ui.detail)
         after = bcd.BcdView(new_bcd)

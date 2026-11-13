@@ -5,10 +5,12 @@ entry that starts BootShim, with the EFIESP device element copied from an
 entry already on the same partition (resetphone or Mobile Startup), so no
 BCD from another phone is ever used.
 
-Two tools can write it: hivex on Linux (the one already proven on the
-phone) and Microsoft's bcdedit on Windows. Whichever writes, the result is
-read back with regf.py and checked against the same plan before anything is
-copied to the phone. The volume-up action (flash mode, the way back) is
+Three tools can write it: regfw.py (pure Python, the default on Linux, so no
+extra package is needed), python3-hivex (the one first proven on the phone,
+chosen with LUMIA_BCD_WRITER=hivex) and Microsoft's bcdedit on Windows. The
+two Linux writers make the same calls in the same order. Whichever writes,
+the result is read back with regf.py and checked against the same plan
+before anything is copied to the phone. The volume-up action (flash mode, the way back) is
 never changed.
 """
 import os
@@ -17,6 +19,7 @@ import shutil
 import struct
 import subprocess
 
+from . import regfw
 from .regf import Hive
 
 BOOTMGR = "{9dea862c-5cdd-4e70-acc1-f32b344d4795}"
@@ -342,11 +345,31 @@ def hivex_available():
         return False
 
 
+def linux_writer():
+    """The Linux BCD writer: "python" (regfw.py), or "hivex" when asked for and installed."""
+    if os.environ.get("LUMIA_BCD_WRITER", "").lower() == "hivex" and hivex_available():
+        return "hivex"
+    return "python"
+
+
 def write_hivex(src, dst, plan):
-    """Linux writer (python3-hivex), same steps as kit/scripts/bcd-bootshim.py."""
-    import hivex
+    """python3-hivex writer, same steps as kit/scripts/bcd-bootshim.py."""
+    write_hive(src, dst, plan, engine="hivex")
+
+
+def write_python(src, dst, plan):
+    """Pure Python writer (regfw.py), the same calls as the hivex one."""
+    write_hive(src, dst, plan, engine="python")
+
+
+def write_hive(src, dst, plan, engine="python"):
+    """Linux writers: the steps of kit/scripts/bcd-bootshim.py on a copy of the BCD."""
     shutil.copyfile(src, dst)
-    h = hivex.Hivex(dst, write=True)
+    if engine == "hivex":
+        import hivex
+        h = hivex.Hivex(dst, write=True)
+    else:
+        h = regfw.Hive(dst)
     objects = h.node_get_child(h.root(), "Objects")
 
     def obj(g):

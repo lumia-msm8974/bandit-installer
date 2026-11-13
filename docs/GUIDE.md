@@ -108,13 +108,13 @@ The installer checks the ROM zip against `SHA256SUMS` and the TWRP image against
 
 ### Linux
 
-Install Python 3 (3.8 or newer), the hivex Python binding (to edit the BCD), util-linux and NTFS
-support (for the firmware step):
+Install Python 3 (3.8 or newer), util-linux and NTFS support (for the firmware step). The installer
+edits the BCD itself, no extra package is needed for it:
 
 ```bash
-sudo pacman -S python hivex util-linux ntfs-3g android-tools              # Arch
-sudo apt install python3 python3-hivex util-linux ntfs-3g adb fastboot      # Debian, Ubuntu
-sudo dnf install python3 python3-hivex util-linux ntfs-3g android-tools   # Fedora
+sudo pacman -S python util-linux ntfs-3g android-tools              # Arch
+sudo apt install python3 util-linux ntfs-3g adb fastboot      # Debian, Ubuntu
+sudo dnf install python3 util-linux ntfs-3g android-tools   # Fedora
 ```
 
 For the app window you need Chromium, Chrome, Brave or Edge; without them the default browser opens
@@ -335,7 +335,6 @@ safe place.
 | Phone ends in **Qualcomm 9008** | Hold power + volume down for 10 s, then volume up at power-on (flash mode) and ask for help with the logs. |
 | **Two different reads** during the backup | Unstable cable or port: change them and run the backup again. |
 | **Partitions still mounted** (mass storage) | Close Explorer/file manager windows showing the phone's drives. |
-| Linux: **hivex** missing | Install the package from [section 4](#linux). |
 
 ### Boot loop
 

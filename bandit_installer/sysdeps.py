@@ -256,13 +256,10 @@ class LinuxSystem(System):
 
     def bcd_backend(self):
         from . import bcd
-        return "hivex" if bcd.hivex_available() else None
+        return bcd.linux_writer()
 
     def missing_requirements(self):
-        from . import bcd
         miss = []
-        if not bcd.hivex_available():
-            miss.append(("hivex", "Arch: pacman -S hivex | Debian/Ubuntu: apt install python3-hivex | Fedora: dnf install python3-hivex"))
         if not shutil.which("lsblk"):
             miss.append(("lsblk", "util-linux"))
         return miss
@@ -502,7 +499,7 @@ class ImageSystem(LinuxSystem):
 
     def bcd_backend(self):
         from . import bcd
-        return "hivex" if bcd.hivex_available() else None
+        return bcd.linux_writer()
 
     def missing_requirements(self):
         return [] if shutil.which("mcopy") else [("mtools", "mcopy, mdir, mmd, mdel, mrd")]

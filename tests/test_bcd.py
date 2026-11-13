@@ -14,7 +14,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 
-from bandit_installer import bcd  # noqa: E402
+from bandit_installer import bcd, regf, regfw  # noqa: E402
 
 BCD = os.environ.get("LUMIA_TEST_BCD")
 OPTIONS = {
@@ -23,6 +23,22 @@ OPTIONS = {
     "windows-default-voldown-android": bcd.Options(default="windows", windows_key="voldown", timeout=5),
     "android-default-no-key": bcd.Options(default="android"),
 }
+
+
+def tree(key):
+    """Every key and value under key, names lower-cased, as nested tuples."""
+    vals = tuple(sorted(key.values().items()))
+    return (key.name.lower(), vals, tuple(sorted(tree(k) for k in key.subkeys())))
+
+
+def hivex_tree(h, node=None):
+    node = h.root() if node is None else node
+    vals = []
+    for v in h.node_values(node):
+        t, data = h.value_value(v)
+        vals.append((h.value_key(v).lower(), (t, data)))
+    kids = tuple(sorted(hivex_tree(h, c) for c in h.node_children(node)))
+    return (h.node_name(node).lower(), tuple(sorted(vals)), kids)
 
 
 @unittest.skipUnless(BCD and os.path.isfile(BCD), "set LUMIA_TEST_BCD to a phone's BCD")
@@ -55,6 +71,36 @@ class BcdTest(unittest.TestCase):
                 self.assertEqual(plan.order[0] if opts.default == "android" else plan.order[-1], bcd.ANDROID)
                 for k, e, _t in plan.flash:
                     self.assertNotIn(e, plan.targets, "flash mode target must not change")
+
+    def test_python_writer_verifies(self):
+        for name, opts in OPTIONS.items():
+            with self.subTest(name):
+                plan = bcd.Plan(self.view, opts)
+                out = os.path.join(self.tmp, f"BCD.py.{name}")
+                bcd.write_python(self.src, out, plan)
+                self.assertEqual(regfw.check(out), [], name)
+                after = bcd.BcdView(out)
+                guid, errors = bcd.verify(self.view, after, plan)
+                self.assertEqual(errors, [], name)
+                self.assertEqual(guid, bcd.ANDROID_FIXED.lower())
+                self.assertEqual(after.flash_actions(), self.view.flash_actions())
+                again = os.path.join(self.tmp, f"BCD.py.{name}.again")
+                bcd.write_python(out, again, bcd.Plan(after, opts))
+                self.assertEqual(regfw.check(again), [], name)
+                self.assertEqual(len(bcd.BcdView(again).bootshim_entries()), 1)
+
+    @unittest.skipUnless(bcd.hivex_available(), "python3-hivex needed")
+    def test_python_writer_matches_hivex(self):
+        """Same keys and values as the hivex writer; hivex itself reads the Python output."""
+        import hivex
+        for name, opts in OPTIONS.items():
+            with self.subTest(name):
+                plan = bcd.Plan(self.view, opts)
+                py, hx = (os.path.join(self.tmp, f"BCD.cmp.{k}.{name}") for k in ("py", "hx"))
+                bcd.write_python(self.src, py, plan)
+                bcd.write_hivex(self.src, hx, plan)
+                self.assertEqual(tree(regf.Hive.open(py).root), tree(regf.Hive.open(hx).root), name)
+                self.assertEqual(hivex_tree(hivex.Hivex(py)), tree(regf.Hive.open(py).root), name)
 
     @unittest.skipUnless(bcd.hivex_available(), "python3-hivex needed")
     def test_hivex_writer_verifies(self):
