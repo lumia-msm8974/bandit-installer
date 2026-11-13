@@ -255,7 +255,14 @@ class Plan:
         self.flash = view.flash_actions()
         if not self.flash:
             raise BcdError("no volume-up flash-mode action in the BCD: refusing to change it")
-        if opts.windows_key != "none" and not opts.android_only:
+        if opts.android_only:
+            # Only Android left: volume down must not start Reset My Phone
+            # (resetphone.efi, a Windows tool) by mistake. It starts Android.
+            key = KEYS["voldown"]
+            hit = [e for k, e in actions if k == key]
+            if hit and not any(e == hit[0] for _k, e, _t in self.flash):
+                self.targets[hit[0]] = [ANDROID]
+        elif opts.windows_key != "none":
             other = self.windows if self.default == ANDROID else ANDROID
             key = KEYS[opts.windows_key]
             hit = [e for k, e in actions if k == key]

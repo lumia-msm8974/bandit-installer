@@ -119,6 +119,15 @@ class BcdTest(unittest.TestCase):
                 bcd.write_hivex(out, again, bcd.Plan(after, opts))
                 self.assertEqual(len(bcd.BcdView(again).bootshim_entries()), 1)
 
+    def test_android_only_voldown_starts_android(self):
+        plan = bcd.Plan(self.view, OPTIONS["android-only"])
+        out = os.path.join(self.tmp, "BCD.android-only-voldown")
+        bcd.write_python(self.src, out, plan)
+        after = bcd.BcdView(out)
+        keys = {bcd.KEY_NAMES.get(k): t for k, _e, t in after.actions()}
+        self.assertEqual([after.path(g).lower() for g in keys.get("voldown", [])], [bcd.BOOTSHIM_PATH.lower()])
+        self.assertEqual(after.flash_actions(), self.view.flash_actions())
+
     def test_bcdedit_commands(self):
         plan = bcd.Plan(self.view, OPTIONS["android-default-voldown-windows"])
         g = "{11111111-2222-3333-4444-555555555555}"
