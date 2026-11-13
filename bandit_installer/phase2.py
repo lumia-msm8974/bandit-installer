@@ -18,12 +18,16 @@ PC over adb with a recovery booted in RAM from lk1st (adb as root):
      wlan_mac.bin, bdaddr.txt and WCNSS_qcom_wlan_nv.bin from DPP into persist.
 
 Every dd that writes to the eMMC needs conv=notrunc: toybox dd otherwise ftruncate()s
-the output, which fails on a block device (EINVAL).
+the output, which fails on a block device (EINVAL). The TWRP of the Lumia 930 also has a
+/sbin/dd that knows no conv= and reads the wrong place past 4 GiB (the backup GPT came
+back as zeros), so every dd here is toybox's whenever the recovery has it.
 """
 import hashlib
 import io
 import json
 import os
+import re
+import struct
 import tempfile
 import time
 
@@ -58,7 +62,14 @@ class Run:
         self.dir = folder
         os.makedirs(folder, exist_ok=True)
 
+    dd = "dd"   # "toybox dd" once check() has found it
+
+    def _dd(self, cmd):
+        """cmd with each dd command run as self.dd."""
+        return re.sub(r"(^|[;&|]\s*)dd ", lambda m: m.group(1) + self.dd + " ", cmd)
+
     def sh(self, cmd, timeout=120, check=True):
+        cmd = self._dd(cmd)
         rc, out = self.ctx.phone.adb(["shell", cmd], timeout=timeout)
         if check and rc != 0:
             raise Phase2Error(f"adb shell {cmd[:80]}… failed ({rc}): {out.strip()[-400:]}")
@@ -66,6 +77,7 @@ class Run:
 
     def read(self, cmd, timeout=300):
         """Binary stdout of a shell command (exec-out); stderr must be redirected in cmd."""
+        cmd = self._dd(cmd)
         rc, data = self.ctx.phone.adb_bytes(["exec-out", cmd], timeout=timeout)
         if rc != 0:
             raise Phase2Error(f"adb exec-out {cmd[:80]} failed ({rc})")
@@ -125,6 +137,14 @@ def read_gpt(r, sectors):
     tail = r.read(f"dd if={DISK} bs=512 skip={sectors - 33} count=33 2>/dev/null")
     if len(tail) != 33 * SECTOR:
         raise Phase2Error(f"short backup GPT read: {len(tail)} bytes")
+    # the backup header is the last sector: a dd that reads the wrong place (see above)
+    # gives zeros here, and then nothing may be written
+    if tail[32 * SECTOR:32 * SECTOR + 8] != b"EFI PART" or \
+            struct.unpack_from("<Q", tail, 32 * SECTOR + 24)[0] != sectors - 1:
+        raise Phase2Error(L("La copia di riserva della GPT letta dal telefono non è valida: lettura del disco "
+                            "inaffidabile in questa recovery. Niente è stato scritto.",
+                            "The backup GPT read from the phone is not valid: disk reads are not reliable in "
+                            "this recovery. Nothing was written."))
     disk = _TwoRegions(sectors * SECTOR, [(0, head), ((sectors - 33) * SECTOR, tail)])
     parsed = gpt.read_gpt(disk)
     raw = layout.RawGpt.read(_TwoRegions(sectors * SECTOR, [(0, head), ((sectors - 33) * SECTOR, tail)]), sectors)
@@ -160,6 +180,10 @@ def check(r):
         raise Phase2Error(L(f"Mancano nella recovery: {', '.join(bad or ['mke2fs'])}. Usa la recovery della ROM con --phase2-recovery.",
                             f"Missing in the recovery: {', '.join(bad or ['mke2fs'])}. Use the ROM's recovery with --phase2-recovery."))
     r.mkfs = "mke2fs -F -t ext4" if "mke2fs" not in missing else "make_ext4fs"
+    if "bandit-toybox-dd" in r.sh("toybox dd if=/dev/zero of=/dev/null bs=512 count=1 2>/dev/null && "
+                                  "echo bandit-toybox-dd", check=False):
+        r.dd = "toybox dd"
+        ui.detail(L("dd: quello di toybox", "dd: toybox's"))
     fs = r.sh("cat /proc/filesystems")
     if "vfat" not in fs or "ext4" not in fs:
         raise Phase2Error(L("Il kernel della recovery non ha vfat o ext4.", "The recovery kernel lacks vfat or ext4."))

@@ -219,6 +219,8 @@ def run_segment(seg):
             return 0, b"\n".join(data.splitlines()[-2:]) + b"\n"
         return 1, f"fake shell: pipe {right}\n".encode()
     a = shlex.split(seg)
+    if a[:2] == ["toybox", "dd"]:   # phase2 runs toybox's dd when the recovery has it
+        a = a[1:]
     c = a[0]
     if c in ("sync", "true"):
         return 0, b""
