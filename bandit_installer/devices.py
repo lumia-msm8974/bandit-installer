@@ -62,15 +62,17 @@ BANDIT = Device(
 # so it is not accepted.
 MARTINI = Device(
     "martini", "Lumia 930", ("RM-1045",), unverified_models=("RM-1087",),
-    ready={"full": False, "clean": False, "update": False},
+    # Full stays locked: it starts from mass storage (WPinternals) and has not run end to end on a
+    # 930. Clean and Update follow phase 2 (advanced tools) on a phone whose boot chain is in place.
+    ready={"full": False, "clean": True, "update": True},
     rom_releases="https://github.com/lumia-msm8974/android_device_nokia_martini/releases",
-    # Built from android_device_nokia_martini branch twrp-9.0 (ad8b259), never booted, not released: the
-    # file goes in twrp/ by hand. Pinned in checksums.sha256 so phase 2 (advanced tools) can use it.
+    # Built from android_device_nokia_martini branch twrp-9.0 (ad8b259), booted in RAM on an RM-1045
+    # (13/11/2026), not released: the file goes in twrp/ by hand. Pinned in checksums.sha256.
     twrp_name="twrp-3.7.0_9-0-martini.img",
-    notes=("In preparazione: lk1st, TWRP e ROM compilati ma mai avviati; le modalità si sbloccano dopo la prima prova sul telefono "
-           "(fase 2 disponibile negli strumenti avanzati).",
-           "In preparation: lk1st, TWRP and ROM built but never booted; the modes unlock after the first test on a phone "
-           "(phase 2 available in the advanced tools)."),
+    notes=("In prova: lk1st e TWRP avviati su un RM-1045. Dopo la catena di avvio si fa la fase 2 dagli strumenti avanzati, "
+           "poi la modalità Pulita; la Completa resta bloccata.",
+           "Testing: lk1st and TWRP booted on an RM-1045. After the boot chain, run phase 2 from the advanced tools, "
+           "then the Clean mode; Full stays locked."),
 )
 
 DEVICES = {d.codename: d for d in (BANDIT, MARTINI)}

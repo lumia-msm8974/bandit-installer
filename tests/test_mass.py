@@ -290,10 +290,9 @@ class MassStorageTest(unittest.TestCase):
         self.assertEqual(rc, 1, out)
         self.assertIn("The Full mode is not available yet for the Lumia 930 (martini)", out)
 
-    def test_clean_mode_locked_for_martini(self):
+    def test_clean_mode_open_for_martini(self):
         rc, out = self.run_installer("clean-martini", "clean", "martini", device="martini")
-        self.assertEqual(rc, 1, out)
-        self.assertIn("not available yet for the Lumia 930", out)
+        self.assertNotIn("not available yet for the Lumia 930", out)
 
     def test_martini_phase2_needs_the_twrp_file(self):
         rc, out = self.run_installer("phase2-martini", "phase2", "martini", device="martini")

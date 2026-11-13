@@ -5,9 +5,10 @@
 This guide takes you from a Lumia 1520 running Windows 10 Mobile (or Windows Phone 8.1) to the
 unofficial **LineageOS 18.1** (Android 11) port, and shows how to reinstall or update it later.
 
-> **Lumia 930 (martini, RM-1045):** the installer already knows it, but only the backup, the firmware
-> extraction and the boot chain are available, with an lk1st that has never been booted. There is no
-> ROM or TWRP for the 930 yet, so Full, Clean and Update stay locked. Pick the phone on the install page
+> **Lumia 930 (martini, RM-1045), in testing:** backup, firmware extraction and boot chain have run on a
+> real RM-1045, and lk1st and the TWRP start on it. There is no public ROM or TWRP for the 930 yet: put
+> them in `rom/` and `twrp/` by hand. After the boot chain, run phase 2 from the advanced tools, then the
+> Clean mode; Full stays locked. Pick the phone on the install page
 > (or `--device martini`); the installer checks the model on the phone before writing anything. The rest
 > of this guide describes the Lumia 1520.
 

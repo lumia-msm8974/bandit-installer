@@ -8,7 +8,7 @@ terminal mode (`--text`). The interface is in English, with Italian available in
 | Phone | Codename | Models | State |
 |---|---|---|---|
 | Nokia Lumia 1520 | `bandit` | RM-937, RM-938, RM-939, RM-940 | all modes; ROM and TWRP released |
-| Nokia Lumia 930 | `martini` | RM-1045 (RM-1087 unconfirmed) | **in preparation**: backup, firmware and boot chain; lk1st never booted, no ROM or TWRP yet, so Full, Clean and Update are locked |
+| Nokia Lumia 930 | `martini` | RM-1045 (RM-1087 unconfirmed) | **testing**: backup, firmware and boot chain run on a real RM-1045, lk1st and TWRP boot; phase 2 (advanced tools), then Clean and Update; no public ROM or TWRP yet, Full locked |
 
 The Lumia Icon / 929 (RM-927) shares the `martini` codename but has its own Windows firmware set:
 it is refused. Pick the phone on the install page (or `--device bandit|martini`); the installer also
@@ -291,7 +291,7 @@ Nothing talks to a real device. The tests need `sfdisk`, `mkfs.fat` and mtools.
   `tests/fake/fastboot`) whose eMMC is a sparse disk image with the 1520's partition table.
 - `tests/test_mass.py` runs the mass storage tasks (backup, firmware, boot chain, EFIESP restore) with
   `--test` on a disk image (`LUMIA_TEST_DISK`, read and written with mtools, no root): model checks,
-  the wrong phone, the Lumia Icon, locked modes on the 930. The boot chain test needs a real BCD
+  the wrong phone, the Lumia Icon, the 930's locked Full mode. The boot chain test needs a real BCD
   (`LUMIA_TEST_BCD=<EFI/Microsoft/Boot/BCD of a phone backup>`); none is shipped.
 - `tests/test_bcd.py` checks the plans and both Linux writers on that BCD; with `python3-hivex` it also
   compares the two writers key by key and has hivex read the pure Python output.
