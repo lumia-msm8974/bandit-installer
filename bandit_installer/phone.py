@@ -19,6 +19,8 @@ USB_MODES = {
     ("0421", "0714"): "bootmgr",    # Windows Phone boot manager starting
     ("0421", "066e"): "flash",      # UEFI flash mode (volume up)
     ("0421", "0661"): "windows",    # Windows Phone running
+    ("0421", "06fc"): "windows",    # Windows Phone running (Lumia 930 RM-1045, MTP)
+    ("045e", "0a00"): "windows",    # Windows 10 Mobile running (Microsoft Lumia, MTP)
     ("18d1", "d00d"): "fastboot",   # lk1st / any fastboot
     ("18d1", "d00e"): "k1",         # K1 test kernel (CDC-ACM serial)
     ("05c6", "9008"): "edl",        # Qualcomm emergency download
