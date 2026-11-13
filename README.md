@@ -272,7 +272,7 @@ The single steps are also available on their own, for development and recovery:
 | TWRP 3.7.0_9-1 in RAM, `adb sideload` of the ROM | verified on an RM-937 (2026-11-02) |
 | Clean/Update flow of the installer | simulated phone only (`tests/test_flows.py`) |
 | Backup, firmware, boot chain, EFIESP restore | simulated phone only (`tests/test_mass.py`, disk image through mtools) |
-| Lumia 930 partition table | the GPT of the official RM-1045 FFU (Data grown to a 32 GB eMMC, IS_UNLOCKED added); phase 2 layout and checks pass on it. No `BACKUP_BS_NV` on the 930: skipped |
+| Lumia 930 partition table | the GPT read from a real RM-1045 unlocked with WPinternals (W10M layout: `BACKUP_BS_NV` present, MainOS and Data differ from the 8.1 FFU); phase 2 layout and checks pass on it |
 | Linux BCD writer (hivex) | output byte-identical to the kit script used on the phone |
 | Linux BCD writer (pure Python, default) | same keys and values as the hivex writer on a real 1520 BCD, for every plan; hivex reads its output back; **not yet used on a phone** |
 | Windows BCD writer (bcdedit), Windows disk/USB detection | written, **not yet run on Windows** |
@@ -286,7 +286,7 @@ python3 -m unittest discover -s tests
 Nothing talks to a real device. The tests need `sfdisk`, `mkfs.fat` and mtools.
 
 - `tests/test_layout.py` compares the computed partition table with what `parted` produces from the
-  Android4Lumia950 `partition.sh`, on the 1520 table and on the 930 table from its official FFU.
+  Android4Lumia950 `partition.sh`, on the 1520 table and on the GPT of a real 930.
 - `tests/test_flows.py` runs the three modes in `--text` mode against a fake phone (`tests/fake/adb`,
   `tests/fake/fastboot`) whose eMMC is a sparse disk image with the 1520's partition table.
 - `tests/test_mass.py` runs the mass storage tasks (backup, firmware, boot chain, EFIESP restore) with
