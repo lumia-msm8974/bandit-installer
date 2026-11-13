@@ -102,16 +102,28 @@ class BootImage:
 
 
 def pil_split(path, outdir, base):
-    """Writes base.mdt (b00 + b01) and base.bNN; returns the list of files."""
+    """Writes base.mdt (b00 + b01) and base.bNN; returns the list of files.
+
+    An image with a single segment and no hash segment (the modem's MBA,
+    qcdsp1v28974.mbn) gives only base.b00, that segment: the vendor's
+    extract-local.sh rebuilds base.mdt from the ELF headers, as the kernel
+    loads it.
+    """
     with open(path, "rb") as f:
         d = f.read()
     if d[:4] != b"\x7fELF":
         raise ValueError(f"{os.path.basename(path)}: not an ELF")
     e_phoff = struct.unpack_from("<I", d, 0x1C)[0]
     e_phentsize, e_phnum = struct.unpack_from("<HH", d, 0x2A)
-    if e_phnum < 2:
-        raise ValueError("expected at least 2 program headers (image + hash)")
+    if e_phnum == 0:
+        raise ValueError("no program headers")
     os.makedirs(outdir, exist_ok=True)
+    if e_phnum == 1:
+        _t, off, _v, _p, filesz = struct.unpack_from("<5I", d, e_phoff)
+        fn = os.path.join(outdir, f"{base}.b00")
+        with open(fn, "wb") as f:
+            f.write(d[off:off + filesz])
+        return [fn]
     parts = []
     for i in range(e_phnum):
         o = e_phoff + i * e_phentsize

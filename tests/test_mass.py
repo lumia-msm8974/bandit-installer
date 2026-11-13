@@ -113,6 +113,8 @@ class MassStorageTest(unittest.TestCase):
         drv = os.path.join(cls.mainos, "Windows", "System32", "DriverStore", "FileRepository", "qcadsp.inf_arm_x")
         os.makedirs(drv)
         cls.adsp = fake_pil(os.path.join(drv, "QCADSP8974.MBN"))
+        # the modem MBA has a single segment and no hash segment, as on a real 930
+        cls.mba = fake_pil(os.path.join(drv, "qcdsp1v28974.mbn"), segments=1)
         with open(os.path.join(drv, "qcwlan8974cfg.dat"), "wb") as f:
             f.write(b"wlan cfg")
         cfg = os.path.join(cls.mainos, "Windows", "System32", "config")
@@ -276,6 +278,9 @@ class MassStorageTest(unittest.TestCase):
         for i, blob in enumerate(self.adsp):
             self.assertEqual(readb(os.path.join(split, f"adsp.b{i:02d}")), blob)
         self.assertEqual(readb(os.path.join(split, "adsp.mdt")), self.adsp[0] + self.adsp[1])
+        self.assertEqual(readb(os.path.join(split, "mba.b00")), self.mba[0])
+        self.assertFalse(os.path.exists(os.path.join(split, "mba.mdt")))
+        self.assertIn("qcdsp1v28974.mbn -> mba.b00", out)
         self.assertIn("qcwcnss8974.mbn not found", out)
         self.assertTrue(any(f.lower() == "qcwlan8974cfg.dat" for _b, _d, fs in os.walk(os.path.join(fw, "stock")) for f in fs))
 

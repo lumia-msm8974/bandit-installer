@@ -484,7 +484,10 @@ def act_firmware(ctx):
             continue
         try:
             files = images.pil_split(hit, os.path.join(out, "split"), pil)
-            ui.ok(f"{win_name}.mbn -> {pil}.mdt + {len(files) - 1} .bNN")
+            if len(files) == 1:
+                ui.ok(f"{win_name}.mbn -> {pil}.b00")
+            else:
+                ui.ok(f"{win_name}.mbn -> {pil}.mdt + {len(files) - 1} .bNN")
         except ValueError as e:
             ui.warn(f"{win_name}.mbn: {e}")
     write_manifest(out)
