@@ -307,6 +307,8 @@ def run_shell(cmd):
     """A tiny shell: ; and && between simple commands, plus the installer's compound checks."""
     if cmd.startswith("for d in /sys/block/mmcblk0/mmcblk0p*"):
         return 0, "".join(f"{n} PARTNAME={name}\n" for n, name, _f, _l in kparts()).encode()
+    if "getprop sys.usb.config" in cmd:   # android.settle_usb: uptime, USB config and state
+        return 0, b"30.00 mtp,adb mtp,adb\n"
     if "bandit-tools-checked" in cmd:
         return 0, b"bandit-tools-checked\n"
     if "bandit-mounts-checked" in cmd:

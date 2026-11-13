@@ -89,11 +89,13 @@ class Phone:
             self.log(f"$ fastboot {' '.join(args)}  (rc={rc})\n{out.rstrip()}")
         return rc, out
 
-    def adb(self, args, timeout=60, quiet=False):
+    def adb(self, args, timeout=60, quiet=False, retry=True):
         if not self.adb_exe:
             return 127, "adb not found"
         rc, out = sysdeps.run([self.adb_exe] + self._sel(args), timeout=timeout, input=b"")
-        if rc and self._retry_after_drop(args, out, timeout):
+        tries = 3 if retry else 0
+        while rc and tries and self._retry_after_drop(args, out, timeout):
+            tries -= 1
             rc, out = sysdeps.run([self.adb_exe] + self._sel(args), timeout=timeout, input=b"")
         if not quiet:
             self.log(f"$ adb {' '.join(args)}  (rc={rc})\n{out.rstrip()}")
@@ -114,6 +116,7 @@ class Phone:
             return False
         self.log(f"adb lost the phone ({out.strip()[-80:]}): waiting for it and trying once more")
         rc, _out = sysdeps.run([self.adb_exe] + self._sel(["wait-for-any"]), timeout=min(timeout, 45), input=b"")
+        time.sleep(3)   # the link may drop once more right after coming back
         return rc == 0
 
     def adb_bytes(self, args, timeout=120):
@@ -123,7 +126,9 @@ class Phone:
         try:
             p = subprocess.run([self.adb_exe] + self._sel(args), stdin=subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
-            if p.returncode and self._retry_after_drop(args, p.stderr.decode("utf-8", "replace"), timeout):
+            tries = 3
+            while p.returncode and tries and self._retry_after_drop(args, p.stderr.decode("utf-8", "replace"), timeout):
+                tries -= 1
                 p = subprocess.run([self.adb_exe] + self._sel(args), stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         except subprocess.TimeoutExpired:

@@ -214,7 +214,8 @@ class FlowTest(unittest.TestCase):
         if steps is not None:
             with open(os.path.join(work, "state.json"), "w") as f:
                 json.dump({"phones": {self.guid: {"steps": steps}}, "last": self.guid}, f)
-        e = dict(os.environ, FAKE_STATE=s, BANDIT_NO_USB_SCAN="1", PATH=FAKE + os.pathsep + os.environ.get("PATH", ""))
+        e = dict(os.environ, FAKE_STATE=s, BANDIT_NO_USB_SCAN="1", LUMIA_USB_STEADY_S="0",
+                 PATH=FAKE + os.pathsep + os.environ.get("PATH", ""))
         for k in ("ANDROID_SERIAL", "BANDIT_LANG"):
             e.pop(k, None)
         e.update(env or {})
