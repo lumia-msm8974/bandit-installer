@@ -93,9 +93,28 @@ class Phone:
         if not self.adb_exe:
             return 127, "adb not found"
         rc, out = sysdeps.run([self.adb_exe] + self._sel(args), timeout=timeout, input=b"")
+        if rc and self._retry_after_drop(args, out, timeout):
+            rc, out = sysdeps.run([self.adb_exe] + self._sel(args), timeout=timeout, input=b"")
         if not quiet:
             self.log(f"$ adb {' '.join(args)}  (rc={rc})\n{out.rstrip()}")
         return rc, out
+
+    # adb printed one of these without reaching the phone: the command never ran there
+    NOT_REACHED = ("no devices/emulators found", "device offline", "device still connecting")
+
+    def _retry_after_drop(self, args, out, timeout):
+        """True when adb lost the phone before sending the command and the phone is back.
+
+        A recovery switches its USB configuration a few seconds after it starts (TWRP turns
+        on MTP), and adb loses the phone for about a second. The command did not run, so it
+        is safe to send it again once the phone is back.
+        """
+        if args[:1] and args[0] in ("devices", "get-state", "kill-server", "start-server") or \
+                args[0].startswith("wait-for") or not any(s in out for s in self.NOT_REACHED):
+            return False
+        self.log(f"adb lost the phone ({out.strip()[-80:]}): waiting for it and trying once more")
+        rc, _out = sysdeps.run([self.adb_exe] + self._sel(["wait-for-any"]), timeout=min(timeout, 45), input=b"")
+        return rc == 0
 
     def adb_bytes(self, args, timeout=120):
         """Runs adb and returns (rc, stdout bytes): for exec-out reads of partitions."""
@@ -104,6 +123,9 @@ class Phone:
         try:
             p = subprocess.run([self.adb_exe] + self._sel(args), stdin=subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+            if p.returncode and self._retry_after_drop(args, p.stderr.decode("utf-8", "replace"), timeout):
+                p = subprocess.run([self.adb_exe] + self._sel(args), stdin=subprocess.DEVNULL,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
         except subprocess.TimeoutExpired:
             return 124, b""
         if p.returncode:

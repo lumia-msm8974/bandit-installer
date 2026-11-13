@@ -395,6 +395,9 @@ def boot_recovery(ctx, image, label="TWRP"):
     wait_recovery(ctx, label)
 
 
+USB_SETTLE_S = 12  # seconds of uptime after which the recovery's USB configuration is stable
+
+
 def wait_recovery(ctx, label="TWRP"):
     ui = ctx.ui
     ui.info(L(f"Attesa di {label} su adb (fino a 5 minuti)…", f"Waiting for {label} on adb (up to 5 minutes)…"))
@@ -414,6 +417,18 @@ def wait_recovery(ctx, label="TWRP"):
     else:
         raise Abort(L(f"{label} è su adb ma la shell non risponde. Riavvia il telefono in lk1st e riprova.",
                       f"{label} is on adb but its shell does not answer. Restart the phone into lk1st and try again."))
+    # TWRP switches USB to mtp,adb about 6.5 s after the kernel starts (seen on a Lumia 930),
+    # which drops adb for a moment: start working only once that is behind us.
+    rc, out = ctx.phone.adb(["shell", "cat /proc/uptime"], timeout=15, quiet=True)
+    try:
+        left = USB_SETTLE_S - float(out.split()[0])
+    except (IndexError, ValueError):
+        left = 0
+    if left > 0:
+        ui.detail(L(f"Attesa di {left:.0f} s: la recovery sta ancora configurando l'USB.",
+                    f"Waiting {left:.0f} s: the recovery is still setting up USB."))
+        time.sleep(left)
+        ctx.phone.adb(["wait-for-any"], timeout=45, quiet=True)
     rc, out = ctx.phone.adb(["shell", "id -u"], timeout=15, quiet=True)
     if out.strip() != "0":
         raise Abort(L(f"adb in {label} non è root (uid {out.strip()}).", f"adb in {label} is not root (uid {out.strip()})."))
