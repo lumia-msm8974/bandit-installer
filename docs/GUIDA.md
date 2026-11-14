@@ -223,9 +223,11 @@ l'installer rifiuta qualunque configurazione che la cambierebbe.
 ### 6.6 Riavvio e verifica di lk1st
 
 Riavvia il telefono: esci dalla modalità mass storage in WPinternals, oppure tieni premuti
-**accensione + volume giù** per circa 10 secondi finché vibra. Compare il testo di BootShim, poi lo
-schermo resta fermo: lk1st non usa il display, quindi è normale. L'installer aspetta fastboot e salva
-`fastboot getvar all` e il log di lk1st.
+**accensione + volume giù** per circa 10 secondi finché vibra. Compare il testo di BootShim, poi sullo
+schermo il menu fastboot di lk1st (avvio normale, recovery, bootloader, spegnimento: tasti volume per
+spostarsi, accensione per scegliere). Con il vecchio lk1st del 1520 (`base-0ff`, la scelta di ripiego)
+lo schermo resta invece fermo, ed è normale. L'installer aspetta fastboot e salva `fastboot getvar all` e
+il log di lk1st.
 
 ### 6.7 Partizioni Android (fase 2)
 
@@ -306,9 +308,13 @@ L'installer ha bisogno di lk1st in fastboot per avviare la TWRP. Quasi sempre ci
 |---|---|
 | in Android, debug USB attivo | niente: l'installer esegue `adb reboot bootloader` (circa 12 s) |
 | nella TWRP | niente: l'installer lo riavvia in lk1st; a mano: *Riavvia → Bootloader* |
-| acceso senza Android installato (dopo la catena di avvio) | accendilo: dopo il testo di BootShim lk1st resta in fastboot con lo schermo fermo |
+| acceso senza Android installato (dopo la catena di avvio) | accendilo: dopo il testo di BootShim lk1st resta in fastboot e mostra il suo menu |
 | nel menu di avvio di Windows (se hai impostato un'attesa) | scegli **Android (lk1st)** |
 | in un riavvio continuo | vedi la [sezione 12](#12-problemi-comuni-e-riavvii-continui) |
+
+**Lumia 1520 installato con l'installer 0.3.0 o precedente**: il suo lk1st non ha il menu sullo schermo.
+Per averlo, metti il telefono in mass storage (modalità flash, poi WPinternals su Windows) e rifai
+**Strumenti avanzati → Catena di avvio** con il lk1st predefinito; Android e i suoi dati non vengono toccati.
 
 **Il volume su tenuto all'accensione non è fastboot**: apre la **modalità flash** di Windows Phone (un
 grande fulmine), usata da WPinternals e da Windows Device Recovery Tool. È la via del ritorno quando
@@ -335,8 +341,8 @@ del provisioning, log) in un posto sicuro.
   quando Android è avviato.
 - La TWRP viene solo avviata in RAM; non viene installata sul telefono.
 - Il primo avvio richiede diversi minuti, di più dopo Pulita o Completa.
-- La fase 2 con la TWRP è stata provata solo su un telefono simulato; la stessa sequenza è stata
-  eseguita su un RM-937 reale con la recovery della ROM. Se alla TWRP manca uno strumento l'installer si
+- La fase 2 con la TWRP è stata eseguita su un Lumia 930 vero (13/11/2026); sul 1520 la stessa sequenza
+  è stata eseguita con la recovery della ROM (01/11/2026). Se alla TWRP manca uno strumento l'installer si
   ferma prima di scrivere; l'opzione avanzata `--phase2-recovery <recovery.img>` usa allora un'altra
   recovery (serve adb come root).
 - Le parti dell'installer specifiche di Windows (BCD con `bcdedit`, rilevamento di dischi e USB) non

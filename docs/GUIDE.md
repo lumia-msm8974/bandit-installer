@@ -215,9 +215,10 @@ installer refuses any configuration that would change it.
 ### 6.6 Restart and lk1st check
 
 Restart the phone: leave mass storage mode in WPinternals, or hold **power + volume down** for about
-10 seconds until it vibrates. The BootShim text appears, then the screen stays still: lk1st does not
-drive the display, so a still screen is expected. The installer waits for fastboot and saves
-`fastboot getvar all` and the lk1st log.
+10 seconds until it vibrates. The BootShim text appears, then lk1st's fastboot menu shows on the screen
+(normal boot, recovery, bootloader, power off: volume keys to move, power to choose). With the older
+1520 lk1st (`base-0ff`, the fallback choice) the screen stays still instead, which is expected. The
+installer waits for fastboot and saves `fastboot getvar all` and the lk1st log.
 
 ### 6.7 Android partitions (phase 2)
 
@@ -296,9 +297,13 @@ The installer needs lk1st in fastboot to start TWRP. In most cases it gets there
 |---|---|
 | in Android, USB debugging on | nothing: the installer runs `adb reboot bootloader` (about 12 s) |
 | in TWRP | nothing: the installer restarts it into lk1st; by hand: *Reboot → Bootloader* |
-| on with no Android installed yet (after the boot chain) | power it on: after the BootShim text lk1st stays in fastboot with a still screen |
+| on with no Android installed yet (after the boot chain) | power it on: after the BootShim text lk1st stays in fastboot and shows its menu |
 | showing the Windows boot menu (if you set a menu timeout) | pick **Android (lk1st)** |
 | in a boot loop | see [section 12](#12-troubleshooting-and-boot-loops) |
+
+**Lumia 1520 installed with installer 0.3.0 or older**: its lk1st has no menu on the screen. To get the
+menu, put the phone in mass storage mode (flash mode, then WPinternals on Windows) and run **Advanced
+tools → Boot chain** again with the default lk1st; Android and its data are not touched.
 
 **Volume up held at power-on is not fastboot**: it opens the Windows Phone **flash mode** (a large
 lightning bolt), used by WPinternals and Windows Device Recovery Tool. It is the way back when nothing
@@ -324,8 +329,8 @@ safe place.
   client makes adb lose the phone in TWRP. Copy files with `adb push`/`adb pull`, or once Android runs.
 - TWRP is only started in RAM; it is not installed on the phone.
 - The first start takes several minutes, more after Clean or Full.
-- Phase 2 with TWRP has been tested only on a simulated phone; the same sequence ran on a real RM-937
-  with the ROM's recovery. If TWRP lacks a tool the installer stops before writing anything; the
+- Phase 2 with TWRP ran on a real Lumia 930 (2026-11-13); on the 1520 the same sequence ran with the
+  ROM's recovery (2026-11-01). If TWRP lacks a tool the installer stops before writing anything; the
   advanced option `--phase2-recovery <recovery.img>` then uses another recovery (it needs adb as root).
 - The Windows-specific parts of the installer (BCD with `bcdedit`, disk and USB detection) have not
   been run on Windows yet.

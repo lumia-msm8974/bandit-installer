@@ -226,8 +226,7 @@ USB debugging in Android (Settings → System → Developer options) and run **U
 - The **first start** after an install takes several minutes (longer after Clean or Full).
 - Phase 2 was run on an RM-937 on 2026-11-01 with the ROM's own recovery (`kit/phase2/phase2.py`). The
   installer runs the same sequence with **TWRP**, which has adb as root and the same USB properties,
-  plus `dd`, `mke2fs` and `blockdev`: this combination has been tested only with a simulated phone so
-  far. If TWRP lacks a tool, the installer stops before writing anything; `--phase2-recovery` then
+  plus `dd`, `mke2fs` and `blockdev`: this combination ran on a real Lumia 930 (2026-11-13). If TWRP lacks a tool, the installer stops before writing anything; `--phase2-recovery` then
   takes the ROM's recovery image.
 - The Windows-specific parts (BCD with `bcdedit`, disk and USB detection) have not been run on Windows
   yet.
@@ -270,10 +269,10 @@ The single steps are also available on their own, for development and recovery:
 | lk1st `base-0ff-display` (1520, default) | on-screen fastboot menu, keys, Android from the menu and a normal restart verified on an RM-937 (2026-11-14) |
 | lk1st `base-7cc` (930) | built from [lumia-msm8974/lk2nd](https://github.com/lumia-msm8974/lk2nd) branch `martini`; boots and runs fastboot on an RM-1045 (2026-11-13) |
 | Lumia 930 install | backup, firmware, boot chain, phase 2 and Clean on an RM-1045 on Windows Phone 8.1 (2026-11-13), Update with TWRP in RAM and `adb sideload` (2026-11-14); Full never run end to end |
-| Phase 2 sequence (GPT, format, provisioning) | run on an RM-937 with the ROM's recovery (2026-11-01); in the installer with TWRP: simulated phone only |
+| Phase 2 sequence (GPT, format, provisioning) | run on an RM-937 with the ROM's recovery (2026-11-01); in the installer with TWRP on an RM-1045 (2026-11-13) |
 | TWRP 3.7.0_9-1 in RAM, `adb sideload` of the ROM | verified on an RM-937 (2026-11-02) |
-| Clean/Update flow of the installer | simulated phone only (`tests/test_flows.py`) |
-| Backup, firmware, boot chain, EFIESP restore | simulated phone only (`tests/test_mass.py`, disk image through mtools) |
+| Clean/Update flow of the installer | Clean on an RM-1045 (2026-11-13); Update with TWRP in RAM on an RM-1045 and an RM-937 (2026-11-14); also `tests/test_flows.py` |
+| Backup, firmware, boot chain, EFIESP restore | backup, firmware and boot chain on an RM-1045 (2026-11-13); EFIESP restore on a simulated phone only (`tests/test_mass.py`) |
 | Lumia 930 partition table | the GPT read from a real RM-1045 unlocked with WPinternals (W10M layout: `BACKUP_BS_NV` present, MainOS and Data differ from the 8.1 FFU); phase 2 layout and checks pass on it |
 | Linux BCD writer (hivex) | output byte-identical to the kit script used on the phone |
 | Linux BCD writer (pure Python, default) | same keys and values as the hivex writer on a real 1520 BCD, for every plan; hivex reads its output back; **not yet used on a phone** |
