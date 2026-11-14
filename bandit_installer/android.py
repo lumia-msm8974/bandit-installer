@@ -500,21 +500,51 @@ def check_model_in_recovery(ctx):
     return check_model(ctx, model_from_dpp(bytes(data)) if rc == 0 else None, "DPP")
 
 
+TWRP_WAIT_S = float(os.environ.get("BANDIT_TWRP_WAIT_S", 180))  # tests shorten it
+
+
+def twrp_diagnostics(ctx):
+    """Copies `adb devices` and the end of TWRP's log into the log of this run."""
+    ui = ctx.ui
+    ui.info(L("Per una segnalazione (anche nel log di questa esecuzione):",
+              "For a bug report (also in the log of this run):"))
+    rc, out = ctx.phone.adb(["devices", "-l"], timeout=30, quiet=True)
+    for line in out.splitlines():
+        if line.strip():
+            ui.detail("  adb devices: " + line.strip())
+    for line in recovery_log(ctx).splitlines()[-40:]:
+        ui.detail("  recovery.log: " + line.rstrip())
+
+
 def wait_twrp_commands(ctx):
     """Waits until the `twrp` command line client reaches the TWRP interface."""
     ui = ctx.ui
-    end = time.time() + 180
+    end = time.time() + TWRP_WAIT_S
+    next_hint = time.time() + 45
+    said = ""
     while time.time() < end:
         ui.check_cancel()
         rc, out = ctx.phone.adb(["shell", "twrp print bandit-twrp-ready"], timeout=20)
+        said = " ".join(out.split())[:200]
+        if rc == 124:
+            said = ("no answer within 20 s " + said).strip()
         if rc != 124 and "does not appear to be running" not in out:
             return
         if rc == 124:
             ctx.phone.adb(["shell", "pkill -f 'twrp [p]rint'"], timeout=15, quiet=True)
         ui.status(L("Attesa dell'interfaccia della TWRP…", "Waiting for the TWRP interface…"))
+        if time.time() > next_hint:
+            ui.info(L(f"La TWRP non accetta ancora comandi (adb ha risposto: {said}).",
+                      f"TWRP does not take commands yet (adb said: {said})."))
+            ui.info(L("Se la TWRP sul telefono mostra una domanda o una richiesta di password, rispondi (scorri, o Annulla).",
+                      "If TWRP on the phone shows a question or a password screen, answer it (swipe, or Cancel)."))
+            next_hint = time.time() + 45
         time.sleep(5)
-    raise Abort(L("L'interfaccia a comandi della TWRP non è partita entro 3 minuti. Riavvia il telefono in lk1st e riprova.",
-                  "The TWRP command interface did not start within 3 minutes. Restart the phone into lk1st and try again."))
+    twrp_diagnostics(ctx)
+    raise Abort(L(f"L'interfaccia a comandi della TWRP non è partita entro {TWRP_WAIT_S:.0f} s (ultima risposta di adb: {said}). "
+                  "Riavvia il telefono in lk1st e riprova; se succede ancora, manda il log di questa esecuzione.",
+                  f"The TWRP command interface did not start within {TWRP_WAIT_S:.0f} s (last adb answer: {said}). "
+                  "Restart the phone into lk1st and try again; if it happens again, send the log of this run."))
 
 
 def recovery_log(ctx):

@@ -294,6 +294,15 @@ class FlowTest(unittest.TestCase):
         self.assertEqual(self.file("n-twrp-sideload").strip(), "2")
         self.assertInstalled()
 
+    def test_update_twrp_never_takes_commands(self):
+        rc, out = self.run_installer("update-ors-down", "update",
+                                     env={"FAKE_ORS_DOWN": "1", "BANDIT_TWRP_WAIT_S": "60"})
+        self.assertEqual(rc, 1, out)
+        self.assertIn("TWRP does not take commands yet (adb said: TWRP does not appear to be running", out)
+        self.assertIn("did not start within 60 s (last adb answer:", out)
+        self.assertIn("adb devices:", out)
+        self.assertEqual(self.file("installed"), "")
+
     def test_update_install_failed(self):
         rc, out = self.run_installer("update-fail", "update", env={"FAKE_SIDELOAD_FAIL": "1"})
         self.assertEqual(rc, 1, out)

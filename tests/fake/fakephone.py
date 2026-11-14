@@ -342,7 +342,7 @@ def run_shell(cmd):
 
 def twrp(command):
     if command.startswith("print"):
-        if count("ors") == 1:
+        if os.environ.get("FAKE_ORS_DOWN") or count("ors") == 1:
             return 0, b"TWRP does not appear to be running. Waiting for TWRP to start . . .\n"
         return 139, b"Segmentation fault\n"
     if command == "sideload":
