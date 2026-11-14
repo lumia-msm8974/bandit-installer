@@ -5,12 +5,20 @@
 This guide takes you from a Lumia 1520 running Windows 10 Mobile (or Windows Phone 8.1) to the
 unofficial **LineageOS 18.1** (Android 11) port, and shows how to reinstall or update it later.
 
-> **Lumia 930 (martini, RM-1045), in testing:** backup, firmware extraction and boot chain have run on a
-> real RM-1045, and lk1st and the TWRP start on it. There is no public ROM or TWRP for the 930 yet: put
-> them in `rom/` and `twrp/` by hand. After the boot chain, run phase 2 from the advanced tools, then the
-> Clean mode; Full stays locked. Pick the phone on the install page
-> (or `--device martini`); the installer checks the model on the phone before writing anything. The rest
-> of this guide describes the Lumia 1520.
+> **Lumia 930 (martini, RM-1045), test builds.** Every step below has run on a real RM-1045 on Windows
+> Phone 8.1, one at a time; the Full mode stays locked until it has run end to end on a 930. Download the
+> [ROM](https://github.com/lumia-msm8974/android_device_nokia_martini/releases) with its `SHA256SUMS` into
+> `rom/`; the installer downloads the [TWRP](https://github.com/lumia-msm8974/android_device_nokia_martini/releases/tag/twrp-martini-20261113)
+> by itself. Pick **Lumia 930** on the install page (or `--device martini`), then:
+>
+> 1. Unlock the phone with WPinternals and put it in mass storage mode (*Before you start*, below).
+> 2. **Advanced tools**: **Backup**, then **Firmware**, then **Boot chain** (the phone stays in mass storage).
+> 3. Restart the phone: it stops in lk1st's fastboot menu. **Advanced tools** → **Check lk1st**.
+> 4. **Advanced tools** → **Android partitions** (phase 2: this erases Windows).
+> 5. **Clean** mode: TWRP in RAM, data formatted, ROM installed. The first boot takes a few minutes.
+>
+> Later updates use the **Update** mode. The installer checks the model on the phone before writing
+> anything. The rest of this guide describes the Lumia 1520; the screens are the same.
 
 > **Unofficial and experimental.** The **Full** install **erases Windows 10 Mobile and everything on
 > the phone** (apps, photos, files). Going back to Windows needs a Windows FFU image flashed with

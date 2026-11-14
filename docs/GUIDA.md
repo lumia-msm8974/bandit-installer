@@ -5,12 +5,21 @@
 Questa guida porta un Lumia 1520 con Windows 10 Mobile (o Windows Phone 8.1) al port non ufficiale
 di **LineageOS 18.1** (Android 11), e spiega come reinstallarlo o aggiornarlo in seguito.
 
-> **Lumia 930 (martini, RM-1045), in prova:** backup, estrazione del firmware e catena di avvio sono stati
-> eseguiti su un RM-1045 vero, e lk1st e la TWRP ci partono. Per il 930 non ci sono ancora ROM né TWRP
-> pubblicate: mettile a mano in `rom/` e `twrp/`. Dopo la catena di avvio si fa la fase 2 dagli strumenti
-> avanzati, poi la modalità Pulita; la Completa resta bloccata. Scegli il telefono nella pagina di
-> installazione (o con `--device martini`); l'installer controlla il modello sul telefono prima di
-> scrivere qualsiasi cosa. Il resto della guida descrive il Lumia 1520.
+> **Lumia 930 (martini, RM-1045), build di prova.** Ogni passo qui sotto è stato eseguito su un RM-1045 vero
+> con Windows Phone 8.1, uno alla volta; la modalità Completa resta bloccata finché non gira per intero su un
+> 930. Scarica la [ROM](https://github.com/lumia-msm8974/android_device_nokia_martini/releases) con il suo
+> `SHA256SUMS` in `rom/`; la [TWRP](https://github.com/lumia-msm8974/android_device_nokia_martini/releases/tag/twrp-martini-20261113)
+> la scarica l'installer da solo. Scegli **Lumia 930** nella pagina di installazione (o `--device martini`), poi:
+>
+> 1. Sblocca il telefono con WPinternals e mettilo in mass storage (*Prima di cominciare*, qui sotto).
+> 2. **Strumenti avanzati**: **Backup**, poi **Firmware**, poi **Catena di avvio** (il telefono resta in mass storage).
+> 3. Riavvia il telefono: si ferma nel menu fastboot di lk1st. **Strumenti avanzati** → **Verifica lk1st**.
+> 4. **Strumenti avanzati** → **Partizioni Android** (fase 2: cancella Windows).
+> 5. Modalità **Pulita**: TWRP in RAM, dati formattati, ROM installata. Il primo avvio richiede qualche minuto.
+>
+> Gli aggiornamenti successivi usano la modalità **Aggiornamento**. L'installer controlla il modello sul
+> telefono prima di scrivere qualsiasi cosa. Il resto della guida descrive il Lumia 1520; le schermate sono
+> le stesse.
 
 > **Non ufficiale e sperimentale.** L'installazione **Completa** **cancella Windows 10 Mobile e tutto
 > quello che c'è sul telefono** (app, foto, file). Per tornare a Windows serve un'immagine FFU di
