@@ -19,6 +19,18 @@
           "note_it": "Fastboot verificato su RM-937 il 01/11/2026. Schermo fermo: lk1st non usa il display.",
           "note_en": "Fastboot verified on an RM-937 on 2026-11-01. The screen does not change: this lk1st does not drive the display.",
           "source": "lumia-msm8974/lk2nd branch bandit, c6967d7b built with MEMBASE=0x0FF00000"
+        },
+        {
+          "id": "base-0ff-display",
+          "path": "bandit/lk1st/base-0ff-display/emmc_appsboot.mbn",
+          "sha256": "329a3532b847a99607f12e44428b9a3d3ab949985706b9c2d2d59ade4e1cb545",
+          "entry": "0x0ff00000",
+          "status": "untested",
+          "title_it": "lk1st con menu sullo schermo (0x0FF00000)",
+          "title_en": "lk1st with an on-screen menu (0x0FF00000)",
+          "note_it": "Come base-0ff, con lo schermo del 930 (cont-splash): menu fastboot con Android, recovery, bootloader e spegnimento, tasti volume e accensione. Mai avviato su un 1520: prima provare lk2nd.img in RAM (fastboot boot).",
+          "note_en": "Like base-0ff, with the screen of the 930 build (cont-splash): fastboot menu with Android, recovery, bootloader and power off, volume and power keys. Never booted on a 1520: try lk2nd.img in RAM first (fastboot boot).",
+          "source": "lumia-msm8974/lk2nd branch martini, 5650648a, built with DEBUG_FBCON=1 ENABLE_DISPLAY=1 LK2ND_DISPLAY=cont-splash MEMBASE=0x0FF00000"
         }
       ],
       "boot": [
@@ -43,11 +55,11 @@
           "path": "martini/lk1st/base-7cc/emmc_appsboot.mbn",
           "sha256": "913ab854dab9fb919578cd92310038e2be9e0cdff804ccfba417d88f17764adb",
           "entry": "0x7cc00000",
-          "status": "untested",
+          "status": "verified",
           "title_it": "lk1st 930 (0x7CC00000)",
           "title_en": "lk1st 930 (0x7CC00000)",
-          "note_it": "Mai avviato: telefono non ancora provato. Stesso indirizzo e stessa base lk2nd della catena BootShim di Markynose (lumia930-linux). Schermo: cont-splash.",
-          "note_en": "Never booted: not tried on a phone yet. Same address and lk2nd base as Markynose's BootShim chain (lumia930-linux). Screen: cont-splash.",
+          "note_it": "Avviato su un RM-1045 dal 13/11/2026: menu fastboot sullo schermo (cont-splash), Android e TWRP partono da qui.",
+          "note_en": "Booted on an RM-1045 since 2026-11-13: fastboot menu on the screen (cont-splash); Android and TWRP start from here.",
           "source": "lumia-msm8974/lk2nd branch martini, 5650648a, built with kit/scripts/build-lk1st.sh"
         },
         {
