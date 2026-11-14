@@ -9,6 +9,18 @@
       "name": "Nokia Lumia 1520 (bandit, RM-937/RM-938/RM-939/RM-940)",
       "lk1st": [
         {
+          "id": "base-0ff-display",
+          "path": "bandit/lk1st/base-0ff-display/emmc_appsboot.mbn",
+          "sha256": "329a3532b847a99607f12e44428b9a3d3ab949985706b9c2d2d59ade4e1cb545",
+          "entry": "0x0ff00000",
+          "status": "verified",
+          "title_it": "lk1st con menu sullo schermo (0x0FF00000)",
+          "title_en": "lk1st with an on-screen menu (0x0FF00000)",
+          "note_it": "Menu fastboot sullo schermo (cont-splash) con avvio normale, recovery, bootloader e spegnimento, tasti volume e accensione. Verificato su un RM-937 il 14/11/2026: menu, tasti, avvio di Android dal menu e riavvio normale.",
+          "note_en": "Fastboot menu on the screen (cont-splash) with normal boot, recovery, bootloader and power off, volume and power keys. Verified on an RM-937 on 2026-11-14: menu, keys, Android started from the menu and a normal restart.",
+          "source": "lumia-msm8974/lk2nd branch martini, 5650648a, built with DEBUG_FBCON=1 ENABLE_DISPLAY=1 LK2ND_DISPLAY=cont-splash MEMBASE=0x0FF00000"
+        },
+        {
           "id": "base-0ff",
           "path": "bandit/lk1st/base-0ff/emmc_appsboot.mbn",
           "sha256": "bda72d086d80ea43f529b1ee847465e9a45cc7d4c6873ca0d11bd7bfe093b827",
@@ -16,21 +28,9 @@
           "status": "verified",
           "title_it": "lk1st base (0x0FF00000)",
           "title_en": "lk1st base (0x0FF00000)",
-          "note_it": "Fastboot verificato su RM-937 il 01/11/2026. Schermo fermo: lk1st non usa il display.",
-          "note_en": "Fastboot verified on an RM-937 on 2026-11-01. The screen does not change: this lk1st does not drive the display.",
+          "note_it": "Fastboot verificato su RM-937 il 01/11/2026. Senza schermo: lk1st non usa il display (ripiego).",
+          "note_en": "Fastboot verified on an RM-937 on 2026-11-01. No screen: this lk1st does not drive the display (fallback).",
           "source": "lumia-msm8974/lk2nd branch bandit, c6967d7b built with MEMBASE=0x0FF00000"
-        },
-        {
-          "id": "base-0ff-display",
-          "path": "bandit/lk1st/base-0ff-display/emmc_appsboot.mbn",
-          "sha256": "329a3532b847a99607f12e44428b9a3d3ab949985706b9c2d2d59ade4e1cb545",
-          "entry": "0x0ff00000",
-          "status": "untested",
-          "title_it": "lk1st con menu sullo schermo (0x0FF00000)",
-          "title_en": "lk1st with an on-screen menu (0x0FF00000)",
-          "note_it": "Come base-0ff, con lo schermo del 930 (cont-splash): menu fastboot con Android, recovery, bootloader e spegnimento, tasti volume e accensione. Mai avviato su un 1520: prima provare lk2nd.img in RAM (fastboot boot).",
-          "note_en": "Like base-0ff, with the screen of the 930 build (cont-splash): fastboot menu with Android, recovery, bootloader and power off, volume and power keys. Never booted on a 1520: try lk2nd.img in RAM first (fastboot boot).",
-          "source": "lumia-msm8974/lk2nd branch martini, 5650648a, built with DEBUG_FBCON=1 ENABLE_DISPLAY=1 LK2ND_DISPLAY=cont-splash MEMBASE=0x0FF00000"
         }
       ],
       "boot": [

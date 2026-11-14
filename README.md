@@ -267,6 +267,7 @@ The single steps are also available on their own, for development and recovery:
 | Part | State |
 |---|---|
 | BootShim `elf-loader-pre3` + lk1st `base-0ff` (1520) | fastboot verified on an RM-937 (2026-11-01) |
+| lk1st `base-0ff-display` (1520, default) | on-screen fastboot menu, keys, Android from the menu and a normal restart verified on an RM-937 (2026-11-14) |
 | lk1st `base-7cc` (930) | built from [lumia-msm8974/lk2nd](https://github.com/lumia-msm8974/lk2nd) branch `martini`; boots and runs fastboot on an RM-1045 (2026-11-13) |
 | Lumia 930 install | backup, firmware, boot chain, phase 2 and Clean on an RM-1045 on Windows Phone 8.1 (2026-11-13), Update with TWRP in RAM and `adb sideload` (2026-11-14); Full never run end to end |
 | Phase 2 sequence (GPT, format, provisioning) | run on an RM-937 with the ROM's recovery (2026-11-01); in the installer with TWRP: simulated phone only |
