@@ -294,6 +294,12 @@ class FlowTest(unittest.TestCase):
         self.assertEqual(self.file("n-twrp-sideload").strip(), "2")
         self.assertInstalled()
 
+    def test_update_word_in_lower_case_asked_again(self):
+        rc, out = self.run_installer("update-lower", "update", "update\nUPDATE\n", env={"FAKE_INSTALLED": "none"})
+        self.assertEqual(rc, 0, out)
+        self.assertIn("Type UPDATE in capital letters", out)
+        self.assertInstalled()
+
     def test_update_twrp_never_takes_commands(self):
         rc, out = self.run_installer("update-ors-down", "update",
                                      env={"FAKE_ORS_DOWN": "1", "BANDIT_TWRP_WAIT_S": "60"})

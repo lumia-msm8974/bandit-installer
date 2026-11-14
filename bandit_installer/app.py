@@ -42,7 +42,10 @@ class TextUI(UI):
     def confirm(self, title, body, yes, no=None, word=None, danger=False):
         print(f"\n  {title}\n  {body}")
         if word:
-            return self._input(L(f"  Scrivi {word} per continuare: ", f"  Type {word} to continue: ")) == word
+            a = self._input(L(f"  Scrivi {word} per continuare: ", f"  Type {word} to continue: "))
+            if a != word and a.lower() == word.lower():  # case-sensitive on purpose: say so
+                a = self._input(L(f"  Scrivi {word} in maiuscolo: ", f"  Type {word} in capital letters: "))
+            return a == word
         return self._input(f"  {yes}? [s/N] " if i18n.get_lang() == "it" else f"  {yes}? [y/N] ").lower() in ("s", "si", "y", "yes")
 
     def choose(self, title, body, options):

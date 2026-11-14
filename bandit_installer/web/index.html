@@ -352,7 +352,7 @@ const T = {
     wizard: "Full install",
     lang: "Language", accent: "Accent colour", work: "Data folder", work_s: "Backups, firmware, logs and progress. They contain personal data: do not publish them.",
     about: "About", quit: "Quit", quit_s: "Closes the installer.",
-    ok: "OK", cancel: "Cancel", type_word: "Type {w} to confirm", finished: "Finished", failed: "Stopped", cancelled: "Cancelled",
+    ok: "OK", cancel: "Cancel", type_word: "Type {w} to confirm", word_caps: "Use capital letters: {w}", finished: "Finished", failed: "Stopped", cancelled: "Cancelled",
     admin_no: "without administrator rights", on: "On", off: "Off", bye: "The installer has closed. You can close this window.",
   },
   it: {
@@ -395,7 +395,7 @@ const T = {
     wizard: "Installazione completa",
     lang: "Lingua", accent: "Colore d'accento", work: "Cartella dati", work_s: "Backup, firmware, log e avanzamento. Contengono dati personali: non pubblicarli.",
     about: "Informazioni", quit: "Esci", quit_s: "Chiude l'installer.",
-    ok: "OK", cancel: "Annulla", type_word: "Scrivi {w} per confermare", finished: "Completato", failed: "Interrotto", cancelled: "Annullato",
+    ok: "OK", cancel: "Annulla", type_word: "Scrivi {w} per confermare", word_caps: "Usa le maiuscole: {w}", finished: "Completato", failed: "Interrotto", cancelled: "Annullato",
     admin_no: "senza permessi di amministratore", on: "Attivato", off: "Disattivato", bye: "L'installer è stato chiuso. Puoi chiudere questa finestra.",
   },
 };
@@ -647,7 +647,7 @@ function openPrompt(p) {
   d.className = "dialog" + (p.kind === "form" || p.kind === "choose" ? " wide" : "");
   let h = `<h2>${esc(p.title)}</h2>` + (p.body ? `<p>${esc(p.body)}</p>` : "");
   if (p.kind === "confirm") {
-    if (p.word) h += `<div class="field"><label>${esc(t("type_word").replace("{w}", p.word))}</label><input type="text" id="pword" autocomplete="off" spellcheck="false"></div>`;
+    if (p.word) h += `<div class="field"><label>${esc(t("type_word").replace("{w}", p.word))}</label><input type="text" id="pword" autocomplete="off" spellcheck="false"><div class="fsub" id="pwordhint"></div></div>`;
     h += `<div class="btns"><button class="btn ${p.danger ? "danger" : "primary"}" id="pyes" ${p.word ? "disabled" : ""}>${esc(p.yes)}</button>
       ${p.no !== null ? `<button class="btn" id="pno">${esc(p.no || t("cancel"))}</button>` : ""}</div>`;
   } else if (p.kind === "choose") {
@@ -677,7 +677,15 @@ function openPrompt(p) {
   d.innerHTML = h;
   $("veil").classList.remove("hidden");
   const w = $("pword");
-  if (w) { w.focus(); w.oninput = () => ($("pyes").disabled = w.value !== p.word); }
+  if (w) {
+    w.focus();
+    w.oninput = () => {
+      $("pyes").disabled = w.value !== p.word;
+      // the word is case-sensitive on purpose: say so instead of leaving the button grey
+      $("pwordhint").textContent = w.value !== p.word && w.value.toLowerCase() === p.word.toLowerCase()
+        ? t("word_caps").replace("{w}", p.word) : "";
+    };
+  }
   const yes = $("pyes"), no = $("pno");
   if (yes) yes.onclick = () => answer(p.kind === "form" ? collectForm(p) : true);
   if (no) no.onclick = () => answer(p.kind === "confirm" ? false : null);
