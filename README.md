@@ -8,7 +8,7 @@ terminal mode (`--text`). The interface is in English, with Italian available in
 | Phone | Codename | Models | State |
 |---|---|---|---|
 | Nokia Lumia 1520 | `bandit` | RM-937, RM-938, RM-939, RM-940 | all modes; ROM and TWRP released |
-| Nokia Lumia 930 | `martini` | RM-1045 (RM-1087 unconfirmed) | **testing**: backup, firmware and boot chain run on a real RM-1045, lk1st and TWRP boot; phase 2 (advanced tools), then Clean and Update; no public ROM or TWRP yet, Full locked |
+| Nokia Lumia 930 | `martini` | RM-1045 (RM-1087 unconfirmed) | **test builds**: every step has run on a real RM-1045 (backup, firmware, boot chain, phase 2 from the advanced tools, Clean, Update); Full locked until it has run end to end on a 930 |
 
 The Lumia Icon / 929 (RM-927) shares the `martini` codename but has its own Windows firmware set:
 it is refused. Pick the phone on the install page (or `--device bandit|martini`); the installer also
@@ -128,8 +128,8 @@ boot manager and the same Spec B partition set: BCD entry, phase 2 table, provis
 | File | Where | Where from |
 |---|---|---|
 | The installer | anywhere with a few GB free | [releases](https://github.com/lumia-msm8974/bandit-installer/releases): `bandit-installer-<version>-windows.zip` (with its own Python) or `-linux.tar.gz` |
-| ROM: `lineage-18.1-YYYYMMDD-UNOFFICIAL-<codename>.zip` **and** `SHA256SUMS` | `rom/` in the installer folder | Lumia 1520: [android_device_nokia_bandit releases](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases); Lumia 930: none yet |
-| TWRP: `twrp-3.7.0_9-1-bandit.img` (1520) | `twrp/` in the installer folder (downloaded by the installer if missing) | [release `twrp-bandit-20261102`](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102); Lumia 930: none yet |
+| ROM: `lineage-18.1-YYYYMMDD-UNOFFICIAL-<codename>.zip` **and** `SHA256SUMS` | `rom/` in the installer folder | Lumia 1520: [android_device_nokia_bandit releases](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases); Lumia 930: [android_device_nokia_martini releases](https://github.com/lumia-msm8974/android_device_nokia_martini/releases) |
+| TWRP: `twrp-3.7.0_9-1-bandit.img` (1520), `twrp-3.7.0_9-0-martini.img` (930) | `twrp/` in the installer folder (downloaded by the installer if missing) | [release `twrp-bandit-20261102`](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102); Lumia 930: [release `twrp-martini-20261113`](https://github.com/lumia-msm8974/android_device_nokia_martini/releases/tag/twrp-martini-20261113) |
 | Platform Tools (`adb`, `fastboot`) | `tools/` (downloaded by the installer if missing) | Google |
 
 The ROM zip is checked against `SHA256SUMS` next to it (or `--rom-sha256`); the TWRP image against
@@ -267,7 +267,8 @@ The single steps are also available on their own, for development and recovery:
 | Part | State |
 |---|---|
 | BootShim `elf-loader-pre3` + lk1st `base-0ff` (1520) | fastboot verified on an RM-937 (2026-11-01) |
-| lk1st `base-7cc` and `base-0ff` (930) | built from [lumia-msm8974/lk2nd](https://github.com/lumia-msm8974/lk2nd) branch `martini`, ELF checked; **never booted** (no 930 available yet) |
+| lk1st `base-7cc` (930) | built from [lumia-msm8974/lk2nd](https://github.com/lumia-msm8974/lk2nd) branch `martini`; boots and runs fastboot on an RM-1045 (2026-11-13) |
+| Lumia 930 install | backup, firmware, boot chain, phase 2 and Clean on an RM-1045 on Windows Phone 8.1 (2026-11-13), Update with TWRP in RAM and `adb sideload` (2026-11-14); Full never run end to end |
 | Phase 2 sequence (GPT, format, provisioning) | run on an RM-937 with the ROM's recovery (2026-11-01); in the installer with TWRP: simulated phone only |
 | TWRP 3.7.0_9-1 in RAM, `adb sideload` of the ROM | verified on an RM-937 (2026-11-02) |
 | Clean/Update flow of the installer | simulated phone only (`tests/test_flows.py`) |
@@ -370,8 +371,8 @@ tests/         layout, flow and mass storage tests, fake adb/fastboot, Docker ru
 
 ## In italiano
 
-Installer per LineageOS 18.1 (Android 11) sui Lumia MSM8974: Lumia 1520 (`bandit`) e, in preparazione,
-Lumia 930 (`martini`, RM-1045: per ora solo backup, firmware e catena di avvio, lk1st mai avviato).
+Installer per LineageOS 18.1 (Android 11) sui Lumia MSM8974: Lumia 1520 (`bandit`) e
+Lumia 930 (`martini`, RM-1045: build di prova; ogni passo è stato eseguito su un RM-1045, la modalità Completa resta bloccata).
 Il telefono si sceglie nella pagina di installazione o con `--device`; l'installer legge comunque il
 modello dal telefono (DPP) e si ferma se non corrisponde. Per Windows e Linux, con una finestra
 desktop in stile Windows 10 (interfaccia in inglese, italiano dalle impostazioni o con `--lang it`;

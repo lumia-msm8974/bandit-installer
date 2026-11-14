@@ -66,13 +66,16 @@ MARTINI = Device(
     # 930. Clean and Update follow phase 2 (advanced tools) on a phone whose boot chain is in place.
     ready={"full": False, "clean": True, "update": True},
     rom_releases="https://github.com/lumia-msm8974/android_device_nokia_martini/releases",
-    # Built from android_device_nokia_martini branch twrp-9.0 (ad8b259), booted in RAM on an RM-1045
-    # (13/11/2026), not released: the file goes in twrp/ by hand. Pinned in checksums.sha256.
+    # Built from android_device_nokia_martini branch twrp-9.0 (ad8b259), used on an RM-1045 for
+    # every install step. Pinned in checksums.sha256.
     twrp_name="twrp-3.7.0_9-0-martini.img",
-    notes=("In prova: lk1st e TWRP avviati su un RM-1045. Dopo la catena di avvio si fa la fase 2 dagli strumenti avanzati, "
-           "poi la modalità Pulita; la Completa resta bloccata.",
-           "Testing: lk1st and TWRP booted on an RM-1045. After the boot chain, run phase 2 from the advanced tools, "
-           "then the Clean mode; Full stays locked."),
+    twrp_page="https://github.com/lumia-msm8974/android_device_nokia_martini/releases/tag/twrp-martini-20261113",
+    twrp_url=("https://github.com/lumia-msm8974/android_device_nokia_martini/releases/download/"
+              "twrp-martini-20261113/twrp-3.7.0_9-0-martini.img"),
+    notes=("Build di prova: ogni passo è stato eseguito su un RM-1045. Dopo la catena di avvio si fa la fase 2 dagli "
+           "strumenti avanzati, poi la modalità Pulita; la Completa resta bloccata finché non gira per intero su un 930.",
+           "Test builds: every step has run on an RM-1045. After the boot chain, run phase 2 from the advanced tools, "
+           "then the Clean mode; Full stays locked until it has run end to end on a 930."),
 )
 
 DEVICES = {d.codename: d for d in (BANDIT, MARTINI)}
