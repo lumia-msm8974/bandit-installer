@@ -7,6 +7,7 @@ import os
 import queue
 import re
 import subprocess
+import tempfile
 import threading
 import time
 
@@ -123,6 +124,8 @@ class Phone:
         """Runs adb and returns (rc, stdout bytes): for exec-out reads of partitions."""
         if not self.adb_exe:
             return 127, b""
+        if sysdeps.IS_WINDOWS and args[:1] == ["exec-out"] and len(args) == 2:
+            return self._read_via_pull(args[1], timeout)
         try:
             p = subprocess.run([self.adb_exe] + self._sel(args), stdin=subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
@@ -136,6 +139,49 @@ class Phone:
         if p.returncode:
             self.log(f"$ adb {' '.join(args)}  (rc={p.returncode})\n{p.stderr.decode('utf-8', 'replace').rstrip()}")
         return p.returncode, p.stdout
+
+    REMOTE_READ = ".lumia-read"
+
+    def _read_via_pull(self, cmd, timeout):
+        """Windows: the command writes a file on the phone and adb pull fetches it.
+
+        Older adb builds on Windows turn LF into CRLF on exec-out, so a binary read
+        (a GPT, the DPP) arrives a few bytes longer; adb pull is binary safe in every
+        version. The file goes to /tmp (the recovery) or /data/local/tmp. cmd must
+        redirect its own stderr, as for exec-out."""
+        name = self.REMOTE_READ
+        rc, out = self.adb(["shell", f"d=/tmp; [ -d $d ] || d=/data/local/tmp; {cmd} > $d/{name}; "
+                                     f"echo lumia-read-rc=$? lumia-read-path=$d/{name}"],
+                           timeout=timeout, quiet=True)
+        m = re.search(r"lumia-read-rc=(\d+) lumia-read-path=(\S+)", out or "")
+        if rc or not m:
+            self.log(f"$ adb shell {cmd[:80]} > {name}  (rc={rc})\n{(out or '').rstrip()}")
+            return rc or 1, b""
+        remote = m.group(2)
+        fd, local = tempfile.mkstemp(prefix="lumia-read-")
+        os.close(fd)
+        try:
+            rc, out = self.adb(["pull", remote, local], timeout=timeout, quiet=True)
+            if rc:
+                self.log(f"$ adb pull {remote}  (rc={rc})\n{out.rstrip()}")
+                return rc, b""
+            with open(local, "rb") as f:
+                data = f.read()
+        finally:
+            os.remove(local)
+            self.adb(["shell", f"rm -f {remote}"], quiet=True)
+        return int(m.group(1)), data
+
+    def tool_versions(self):
+        """First line of `adb version` and `fastboot --version`, for the log."""
+        out = []
+        for name, exe, arg in (("adb", self.adb_exe, "version"), ("fastboot", self.fastboot_exe, "--version")):
+            if not exe:
+                continue
+            rc, text = sysdeps.run([exe, arg], timeout=15, input=b"")
+            first = (text or "").strip().splitlines()[:1]
+            out.append(f"{name}: {exe} ({first[0] if first and rc == 0 else 'version unknown: probably very old'})")
+        return out
 
     def adb_background(self, args):
         """Starts adb without waiting (twrp sideload blocks until adbd restarts)."""

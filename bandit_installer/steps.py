@@ -1254,6 +1254,8 @@ def _need_tools(ctx):
         act_tools(ctx)
     if not (ctx.phone.fastboot_exe and ctx.phone.adb_exe):
         raise Abort(L("Servono adb e fastboot.", "adb and fastboot are needed."))
+    for line in ctx.phone.tool_versions():
+        ctx.phone.log(line)
 
 
 def _resolve_files(ctx):
