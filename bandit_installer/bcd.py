@@ -5,9 +5,10 @@ entry that starts BootShim, with the EFIESP device element copied from an
 entry already on the same partition (resetphone or Mobile Startup), so no
 BCD from another phone is ever used.
 
-Three tools can write it: regfw.py (pure Python, the default on Linux, so no
-extra package is needed), python3-hivex (the one first proven on the phone,
-chosen with LUMIA_BCD_WRITER=hivex) and Microsoft's bcdedit on Windows. The
+Three tools can write it: regfw.py (pure Python, the default on Linux and on
+Windows, so no extra package is needed), python3-hivex (the one first proven on
+the phone, chosen on Linux with LUMIA_BCD_WRITER=hivex) and Microsoft's bcdedit
+(on Windows with LUMIA_BCD_WRITER=bcdedit). The
 two Linux writers make the same calls in the same order. Whichever writes,
 the result is read back with regf.py and checked against the same plan
 before anything is copied to the phone. The volume-up action (flash mode, the way back) is
@@ -233,7 +234,10 @@ class Plan:
         self.otype = view.objects[tmpl]["type"]
         self.windows = view.windows()
         self.remove = [g for g in view.bootshim_entries()]
-        order = [g for g in view.order() if g not in self.remove]
+        # A boot list can name entries that no longer exist (left by other tools):
+        # they are dropped, as they could never start anything.
+        self.orphans = [g for g in view.order() if g not in view.objects]
+        order = [g for g in view.order() if g not in self.remove and g not in self.orphans]
         if opts.android_only:
             order = [ANDROID]
         elif opts.default == "android":
@@ -251,7 +255,8 @@ class Plan:
         self.targets = {}  # element -> new target list (only changed ones)
         for k, e, t in view.actions():
             if any(g in self.remove for g in t):
-                self.targets[e] = [ANDROID if g in self.remove else g for g in t]
+                self.targets[e] = [ANDROID if g in self.remove else g for g in t
+                                   if g in self.remove or g in view.objects]
         self.flash = view.flash_actions()
         if not self.flash:
             raise BcdError("no volume-up flash-mode action in the BCD: refusing to change it")

@@ -23,7 +23,7 @@ from .i18n import L, get_lang, set_lang
 from .phone import mode_text
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
-VERSION = "0.3.1"
+VERSION = "0.3.2"
 
 
 class WebUI(UI):

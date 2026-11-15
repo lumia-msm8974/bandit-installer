@@ -332,8 +332,8 @@ safe place.
 - Phase 2 with TWRP ran on a real Lumia 930 (2026-11-13); on the 1520 the same sequence ran with the
   ROM's recovery (2026-11-01). If TWRP lacks a tool the installer stops before writing anything; the
   advanced option `--phase2-recovery <recovery.img>` then uses another recovery (it needs adb as root).
-- The Windows-specific parts of the installer (BCD with `bcdedit`, disk and USB detection) have not
-  been run on Windows yet.
+- The Windows-specific parts of the installer (disk and USB detection) have been run on Windows only
+  by testers so far. The BCD is written by the installer itself on Windows too, since version 0.3.2.
 
 ## 12. Troubleshooting and boot loops
 

@@ -145,7 +145,8 @@ the phone in its OTA metadata; it contains the phone's firmware.
 - **Python 3.8 or newer**, standard library only. The Windows package includes its own Python.
 - **Android Platform Tools** (`fastboot`, `adb`): the installer can download Google's copy into `tools/`.
 - Windows: the [Google USB driver](https://developer.android.com/studio/run/win-usb) for fastboot and
-  adb. The BCD is changed with Windows' own `bcdedit`.
+  adb. The BCD is written by the installer's own Python writer, as on Linux (Windows' `bcdedit`
+  only with `LUMIA_BCD_WRITER=bcdedit`).
 - Linux: `util-linux`, `ntfs3` or `ntfs-3g` for the firmware step. The BCD is written by the
   installer itself (`regfw.py`), so no hivex package is needed; `LUMIA_BCD_WRITER=hivex` uses
   `python3-hivex` instead, if installed.
@@ -228,8 +229,7 @@ USB debugging in Android (Settings → System → Developer options) and run **U
   installer runs the same sequence with **TWRP**, which has adb as root and the same USB properties,
   plus `dd`, `mke2fs` and `blockdev`: this combination ran on a real Lumia 930 (2026-11-13). If TWRP lacks a tool, the installer stops before writing anything; `--phase2-recovery` then
   takes the ROM's recovery image.
-- The Windows-specific parts (BCD with `bcdedit`, disk and USB detection) have not been run on Windows
-  yet.
+- The Windows-specific parts (disk and USB detection) have been run on Windows only by testers so far.
 
 ## Getting out of a boot loop
 
@@ -276,7 +276,7 @@ The single steps are also available on their own, for development and recovery:
 | Lumia 930 partition table | the GPT read from a real RM-1045 unlocked with WPinternals (W10M layout: `BACKUP_BS_NV` present, MainOS and Data differ from the 8.1 FFU); phase 2 layout and checks pass on it |
 | Linux BCD writer (hivex) | output byte-identical to the kit script used on the phone |
 | Linux BCD writer (pure Python, default) | same keys and values as the hivex writer on a real 1520 BCD, for every plan; hivex reads its output back; **not yet used on a phone** |
-| Windows BCD writer (bcdedit), Windows disk/USB detection | written, **not yet run on Windows** |
+| Windows disk/USB detection | run by testers on Windows; the BCD uses the Python writer on both systems since 0.3.2 |
 
 ## Tests
 

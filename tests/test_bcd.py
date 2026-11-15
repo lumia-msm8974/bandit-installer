@@ -128,6 +128,34 @@ class BcdTest(unittest.TestCase):
         self.assertEqual([after.path(g).lower() for g in keys.get("voldown", [])], [bcd.BOOTSHIM_PATH.lower()])
         self.assertEqual(after.flash_actions(), self.view.flash_actions())
 
+    def test_orphan_in_boot_list(self):
+        """A boot list naming a missing entry (bcdedit refuses it) is planned and written."""
+        src = os.path.join(self.tmp, "BCD.orphan")
+        shutil.copyfile(self.src, src)
+        orphan = "{0badf00d-0000-4000-8000-000000000001}"
+        h = regfw.Hive(src)
+        objects = h.node_get_child(h.root(), "Objects")
+        mgr = next(n for n in h.node_children(objects) if h.node_name(n).lower() == bcd.BOOTMGR)
+        els = h.node_get_child(mgr, "Elements")
+        el = h.node_get_child(els, bcd.E_ORDER) or h.node_add_child(els, bcd.E_ORDER)
+        order = self.view.order() + [orphan]
+        h.node_set_value(el, {"key": "Element", "t": bcd.REG_MULTI_SZ, "value": bcd.multi_sz(order)})
+        h.commit(src)
+        view = bcd.BcdView(src)
+        self.assertIn(orphan, view.order())
+        for name, opts in OPTIONS.items():
+            with self.subTest(name):
+                plan = bcd.Plan(view, opts)
+                self.assertEqual(plan.orphans, [orphan])
+                self.assertNotIn(orphan, plan.order)
+                out = os.path.join(self.tmp, f"BCD.orphan.{name}")
+                bcd.write_python(src, out, plan)
+                self.assertEqual(regfw.check(out), [], name)
+                after = bcd.BcdView(out)
+                guid, errors = bcd.verify(view, after, plan)
+                self.assertEqual(errors, [], name)
+                self.assertNotIn(orphan, after.order())
+
     def test_bcdedit_commands(self):
         plan = bcd.Plan(self.view, OPTIONS["android-default-voldown-windows"])
         g = "{11111111-2222-3333-4444-555555555555}"

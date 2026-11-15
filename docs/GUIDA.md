@@ -345,8 +345,8 @@ del provisioning, log) in un posto sicuro.
   è stata eseguita con la recovery della ROM (01/11/2026). Se alla TWRP manca uno strumento l'installer si
   ferma prima di scrivere; l'opzione avanzata `--phase2-recovery <recovery.img>` usa allora un'altra
   recovery (serve adb come root).
-- Le parti dell'installer specifiche di Windows (BCD con `bcdedit`, rilevamento di dischi e USB) non
-  sono ancora state eseguite su Windows.
+- Le parti dell'installer specifiche di Windows (rilevamento di dischi e USB) sono state eseguite su
+  Windows solo dai tester. Dalla versione 0.3.2 anche su Windows il BCD lo scrive l'installer stesso.
 
 ## 12. Problemi comuni e riavvii continui
 

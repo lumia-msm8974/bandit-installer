@@ -386,13 +386,15 @@ class WindowsSystem(System):
         return list(seen.values())
 
     def bcd_backend(self):
+        """The pure Python writer, as on Linux. Microsoft's bcdedit only when asked for
+        (LUMIA_BCD_WRITER=bcdedit): it refuses a BCD whose boot list names a missing entry."""
         exe = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "bcdedit.exe")
-        return "bcdedit" if os.path.isfile(exe) else None
+        if os.environ.get("LUMIA_BCD_WRITER", "").lower() == "bcdedit" and os.path.isfile(exe):
+            return "bcdedit"
+        return "python"
 
     def missing_requirements(self):
         miss = []
-        if not self.bcd_backend():
-            miss.append(("bcdedit", "Windows\\System32\\bcdedit.exe"))
         if not shutil.which("powershell.exe"):
             miss.append(("powershell", "Windows PowerShell 5.1"))
         return miss
