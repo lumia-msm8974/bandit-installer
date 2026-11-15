@@ -377,7 +377,10 @@ def adb(args):
     if not args:
         return 1
     c = args[0]
-    if c in ("start-server", "version"):
+    if c == "version":
+        out(f"Android Debug Bridge version {rd('adb_version', '1.0.41')}\n")
+        return 0
+    if c == "start-server":
         return 0
     if c == "devices":
         if state == "booting":
@@ -452,6 +455,12 @@ def fastboot(args):
         args = args[2:]
     state = rd("state")
     c = args[0] if args else ""
+    if c == "--version":
+        if rd("adb_version", "1.0.41") < "1.0.39":   # old fastboot has no --version
+            err("fastboot: unknown option -- -version\n")
+            return 1
+        out("fastboot version 35.0.2-12147458\n")
+        return 0
     if c == "devices":
         if state == "fastboot":
             out(f"{SERIAL}\tfastboot\n")

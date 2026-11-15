@@ -130,7 +130,7 @@ boot manager and the same Spec B partition set: BCD entry, phase 2 table, provis
 | The installer | anywhere with a few GB free | [releases](https://github.com/lumia-msm8974/bandit-installer/releases): `bandit-installer-<version>-windows.zip` (with its own Python) or `-linux.tar.gz` |
 | ROM: `lineage-18.1-YYYYMMDD-UNOFFICIAL-<codename>.zip` **and** `SHA256SUMS` | `rom/` in the installer folder | Lumia 1520: [android_device_nokia_bandit releases](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases); Lumia 930: [android_device_nokia_martini releases](https://github.com/lumia-msm8974/android_device_nokia_martini/releases) |
 | TWRP: `twrp-3.7.0_9-1-bandit.img` (1520), `twrp-3.7.0_9-0-martini.img` (930) | `twrp/` in the installer folder (downloaded by the installer if missing) | [release `twrp-bandit-20261102`](https://github.com/lumia-msm8974/android_device_nokia_bandit/releases/tag/twrp-bandit-20261102); Lumia 930: [release `twrp-martini-20261113`](https://github.com/lumia-msm8974/android_device_nokia_martini/releases/tag/twrp-martini-20261113) |
-| Platform Tools (`adb`, `fastboot`) | `tools/` (downloaded by the installer if missing) | Google |
+| Platform Tools (`adb`, `fastboot`) | `tools/` (downloaded by the installer if missing or too old) | Google |
 
 The ROM zip is checked against `SHA256SUMS` next to it (or `--rom-sha256`); the TWRP image against
 [`checksums.sha256`](checksums.sha256) (SHA-256 `c53687b5…ddabd2d` for bandit). The ROM zip must declare
@@ -143,7 +143,7 @@ the phone in its OTA metadata; it contains the phone's firmware.
   cable to a Linux PC: the phone stays in mass storage mode until it restarts.
 - Battery above 50%, a good USB cable, no USB hub.
 - **Python 3.8 or newer**, standard library only. The Windows package includes its own Python.
-- **Android Platform Tools** (`fastboot`, `adb`): the installer can download Google's copy into `tools/`.
+- **Android Platform Tools** (`fastboot`, `adb`): the installer can download Google's copy into `tools/`. An adb older than 1.0.39 (for example a 2015 `C:\adb`) does not work with TWRP, so the installer replaces it with its own copy.
 - Windows: the [Google USB driver](https://developer.android.com/studio/run/win-usb) for fastboot and
   adb. The BCD is written by the installer's own Python writer, as on Linux (Windows' `bcdedit`
   only with `LUMIA_BCD_WRITER=bcdedit`).

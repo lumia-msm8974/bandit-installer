@@ -172,6 +172,33 @@ class Phone:
             self.adb(["shell", f"rm -f {remote}"], quiet=True)
         return int(m.group(1)), data
 
+    # adb before 1.0.39 (platform-tools 26, 2017) breaks on TWRP: no shell protocol, "uid error: closed"
+    MIN_ADB = (1, 0, 39)
+
+    def _version_text(self, exe, arg):
+        rc, text = sysdeps.run([exe, arg], timeout=15, input=b"")
+        return text if rc == 0 else ""
+
+    def adb_version(self):
+        """(1, 0, 41) from `adb version`, or None if it cannot be read."""
+        if not self.adb_exe:
+            return None
+        m = re.search(r"Android Debug Bridge version (\d+)\.(\d+)\.(\d+)", self._version_text(self.adb_exe, "version"))
+        return tuple(int(x) for x in m.groups()) if m else None
+
+    def outdated_tools(self):
+        """Names of the found tools that are too old to use (tools given on the command line are trusted)."""
+        old = []
+        if self.adb_exe and not self.adb_override:
+            v = self.adb_version()
+            if v is None or v < self.MIN_ADB:
+                old.append("adb")
+        if self.fastboot_exe and not self.fastboot_override:
+            # fastboot learned --version together with the adb versions that work
+            if not re.search(r"fastboot version", self._version_text(self.fastboot_exe, "--version")):
+                old.append("fastboot")
+        return old
+
     def tool_versions(self):
         """First line of `adb version` and `fastboot --version`, for the log."""
         out = []

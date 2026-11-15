@@ -190,7 +190,7 @@ nulla, se manca.
 Metti lo zip della ROM e `SHA256SUMS` in `rom`, avvia l'installer e premi **Inizia** su **Installazione
 completa** (oppure `--mode full`). L'installer:
 
-1. propone i Platform Tools se mancano `adb` o `fastboot`;
+1. propone i Platform Tools se mancano `adb` o `fastboot`, o se sono più vecchi di adb 1.0.39 (la TWRP chiude la shell dei vecchi adb con "uid error: closed");
 2. controlla l'immagine della TWRP (se manca propone di scaricarla) e lo zip della ROM.
 
 ### 6.3 Backup

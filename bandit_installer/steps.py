@@ -208,12 +208,20 @@ def act_tools(ctx):
     ui.step(L("Strumenti", "Tools"))
     for name, ok, hint in requirements(ctx):
         (ui.ok if ok else ui.warn)(f"{name}: {hint or 'OK'}")
-    if ctx.phone.fastboot_exe and ctx.phone.adb_exe:
+    old = ctx.phone.outdated_tools()
+    if ctx.phone.fastboot_exe and ctx.phone.adb_exe and not old:
         return
+    note = ""
+    if old:
+        where = os.path.dirname(ctx.phone.adb_exe or ctx.phone.fastboot_exe)
+        ui.warn(L(f"{' e '.join(old)} in {where} troppo vecchi per la TWRP",
+                  f"{' and '.join(old)} in {where} too old for TWRP"))
+        note = L("\nQuelli già sul PC restano dove sono: l'installer userà i suoi.",
+                 "\nThe ones already on the PC stay where they are: the installer will use its own.")
     url = ctx.system.platform_tools_url()
     if not ui.confirm(L("Scaricare Platform Tools?", "Download Platform Tools?"),
                       L(f"fastboot e adb di Google (circa 7 MB) da\n{url}\nin {ctx.system.tool_dir()}.",
-                        f"Google's fastboot and adb (about 7 MB) from\n{url}\ninto {ctx.system.tool_dir()}."),
+                        f"Google's fastboot and adb (about 7 MB) from\n{url}\ninto {ctx.system.tool_dir()}.") + note,
                       L("scarica", "download"), L("annulla", "cancel")):
         return
     import urllib.request
@@ -1250,10 +1258,14 @@ def _intro(ctx, key, extra=()):
 
 
 def _need_tools(ctx):
-    if not (ctx.phone.fastboot_exe and ctx.phone.adb_exe):
+    if not (ctx.phone.fastboot_exe and ctx.phone.adb_exe) or ctx.phone.outdated_tools():
         act_tools(ctx)
     if not (ctx.phone.fastboot_exe and ctx.phone.adb_exe):
         raise Abort(L("Servono adb e fastboot.", "adb and fastboot are needed."))
+    old = ctx.phone.outdated_tools()
+    if old:
+        raise Abort(L(f"{' e '.join(old)} troppo vecchi: servono i Platform Tools attuali di Google.",
+                      f"{' and '.join(old)} too old: current Google Platform Tools are needed."))
     for line in ctx.phone.tool_versions():
         ctx.phone.log(line)
 

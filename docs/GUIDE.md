@@ -182,7 +182,7 @@ WPinternals adds) before anything else and stops at once, without writing, if it
 Put the ROM zip and `SHA256SUMS` in `rom`, start the installer and click **Start** on **Full install**
 (or run `--mode full`). The installer:
 
-1. offers Platform Tools if `adb` or `fastboot` are missing;
+1. offers Platform Tools if `adb` or `fastboot` are missing, or older than adb 1.0.39 (TWRP closes the shell of old adb with "uid error: closed");
 2. checks the TWRP image (it offers to download it if it is missing) and the ROM zip.
 
 ### 6.3 Backup
